@@ -40,7 +40,13 @@
             font-weight: bold;
         }
 
-        /* 🔥 Removida a UL */
+        ul.regras {
+            list-style: disc;
+            padding-left: 40px;
+            max-width: 450px;
+            margin: 0 auto 20px auto;
+            font-size: 15px;
+        }
 
         button { 
             padding: 12px; 
@@ -59,7 +65,9 @@
             gap: 10px;
         }
 
-        button.loading { background: #000 !important; }
+        button.loading {
+            background: #000 !important;
+        }
 
         .spinner {
             border: 3px solid #fff;
@@ -106,38 +114,8 @@
         }
 
         th { cursor: pointer; }
+
         .coluna-ativa { background: #d6d6d6 !important; }
-
-        /* 🔥 Filtros */
-        .filtro-box {
-            max-width: 600px;
-            margin: 10px auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .filtro-linha {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .filtro-linha label {
-            width: 260px;
-            font-weight: bold;
-            text-align: left;
-        }
-
-        .filtro-linha input {
-            width: 240px; /* 🔥 AGORA TODAS AS CAIXAS TÊM O MESMO TAMANHO */
-            padding: 8px;
-            font-size: 15px;
-            background: #efefef;
-            border: 1px solid #bbb;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -150,39 +128,17 @@
     <p class="descricao">
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
+
+    <ul class="regras">
+        <li>Busca vídeos dos últimos <b>14 dias</b></li>
+        <li>Analisa até <b>500 vídeos</b></li>
+        <li>Canal com <b>300 a 10.000 inscritos</b></li>
+        <li>Canal com <b>máx. 30 vídeos</b></li>
+        <li>Vídeos com <b>5000+ views</b></li>
+    </ul>
 </div>
 
-<!-- 🔥 NOVAS CAIXAS DE FILTRO -->
-<div class="filtro-box">
-
-    <div class="filtro-linha">
-        <label>Buscar vídeos dos últimos:</label>
-        <input id="diasInput" type="number" placeholder="Ex: 14 dias">
-    </div>
-
-    <div class="filtro-linha">
-        <label>Analisa até:</label>
-        <input id="limiteVideosInput" type="number" placeholder="Ex: 500 vídeos">
-    </div>
-
-    <div class="filtro-linha">
-        <label>Busca canais com 300 a:</label>
-        <input id="maxInscritosInput" type="number" placeholder="Ex: 10000 inscritos">
-    </div>
-
-    <div class="filtro-linha">
-        <label>Busca canais com 1 a:</label>
-        <input id="maxVideosCanalInput" type="number" placeholder="Ex: 30 vídeos">
-    </div>
-
-    <div class="filtro-linha">
-        <label>Busca vídeos com mais de:</label>
-        <input id="minViewsInput" type="number" placeholder="Ex: 5000 views">
-    </div>
-
-</div>
-
-<!-- 🔥 Caixa do termo -->
+<!-- 🔥 Caixa para digitar termo de busca -->
 <div style="text-align:center; margin-top:10px;">
     <input id="termoBusca" 
            type="text" 
@@ -235,22 +191,20 @@ function pararAnimacaoBotao() {
 }
 
 /* ----------------------------------------------------- */
-/* --------------------- BUSCA -------------------------- */
+/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
 /* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const termoDigitado = termoBusca.value.trim();
+    const termoDigitado = document.getElementById("termoBusca").value.trim();
     const termo = termoDigitado === "" ? "a" : termoDigitado;
 
-    const dias = Number(diasInput.value) || 14;
-    const publishedAfter = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
-
-    let videos = [];
-    const MAX_VIDEOS = Number(limiteVideosInput.value) || 500;
+    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
     let nextPageToken = "";
+    let videos = [];
+    const MAX_VIDEOS = 500;
 
     while (videos.length < MAX_VIDEOS) {
 
@@ -290,7 +244,7 @@ async function buscarVideos() {
 }
 
 /* ----------------------------------------------------- */
-/* -------------------- BUSCA CANAIS -------------------- */
+/* -------------------- BUSCA EM MASSA ------------------ */
 /* ----------------------------------------------------- */
 
 async function buscarDadosDeVariosCanais(listaIds) {
@@ -308,23 +262,17 @@ async function buscarDadosDeVariosCanais(listaIds) {
 }
 
 /* ----------------------------------------------------- */
-/* ----------------------- PROCESSAR --------------------- */
+/* --------------------- PROCESSAR CANAL ---------------- */
 /* ----------------------------------------------------- */
 
 function processarCanal(c) {
-
     const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
 
-    const maxInscritos = Number(maxInscritosInput.value) || 1000000000;
-    const maxVideos = Number(maxVideosCanalInput.value) || 1000000;
-    const minViews = Number(minViewsInput.value) || 0;
-
-    if (inscritos < 300 || inscritos > maxInscritos) return;
-    if (videos < 1 || videos > maxVideos) return;
-    if (views < minViews) return;
+    if (inscritos < 300 || inscritos > 10000) return;
+    if (videos < 1 || videos > 30) return;
 
     adicionarNaTabela(
         nome,
@@ -367,7 +315,7 @@ function ordenar(th) {
     });
 
     th.classList.add("coluna-ativa");
-    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽`;
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
 
     linhas.sort((a, b) => {
         let v1 = a.children[col].innerText;
