@@ -275,9 +275,16 @@ function processarCanal(c) {
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
+    const criado = new Date(c.snippet.publishedAt);
 
     if (inscritos < 1000) return;
     if (videos < 1) return;
+
+    // 🔥 NOVO FILTRO: canal criado nos últimos 6 meses
+    const seisMeses = 6 * 30 * 24 * 60 * 60 * 1000;
+    const idade = Date.now() - criado.getTime();
+
+    if (idade > seisMeses) return;
 
     adicionarNaTabela(
         nome,
@@ -288,6 +295,7 @@ function processarCanal(c) {
         (views / videos).toFixed(1)
     );
 }
+
 
 /* ----------------------------------------------------- */
 /* ------------------------- TABELA ---------------------- */
@@ -344,3 +352,4 @@ function ordenar(th) {
 
 </body>
 </html>
+
