@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CAÇADOR DE CANAIS</title>
+
+    <style>
+        body { 
+            font-family: Arial; 
+            background: #fff; 
+            color: #000; 
+            padding: 0; 
+            margin: 0;
+        }
+
+        /* 🔥 TÍTULO FULL WIDTH */
+        .titulo-container {
+            width: 100%;
+            background: #000;
+            padding: 20px 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 { 
+            color: #fff; 
+            text-align: center; 
+            font-size: 34px;
+            margin: 0;
+        }
+
+        /* 🔥 DESCRIÇÃO + LISTA */
+        .info-container {
+            max-width: 900px;
+            margin: 20px auto;
+            display: block;
+        }
+
+        p.descricao {
+            font-size: 15px;
+            line-height: 1.4;
+            text-align: center;
+            margin-bottom: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        ul.regras {
+            list-style: disc;
+            margin: 0 auto;
+            padding-left: 40px;
+            max-width: 450px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        ul.regras li {
+            margin-bottom: 6px;
+        }
+
+        /* BOTÃO + SPINNER */
+        button { 
+            padding: 12px; 
+            margin: 10px 20px; 
+            width: calc(100% - 40px); 
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(to right, #ff0000, #4b0000);
+            border: 2px solid #000;
+            border-radius: 6px;
+            text-transform: uppercase;
+            transition: 0.15s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button.loading {
+            background: #000 !important;
+            color: #fff;
+        }
+
+        .spinner {
+            border: 3px solid #fff;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        button.loading .spinner {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 🔥 BARRA DE PROGRESSO VERDE */
+        .progress-container {
+            width: calc(100% - 40px);
+            margin: 15px auto;
+            height: 14px;
+            background: #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #00cc44, #009933);
+            transition: width 0.25s ease;
+        }
+
+        /* 🔥 TABELA CINZA */
+        table { 
+            width: calc(100% - 40px); 
+            margin: 20px auto; 
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 8px;
+            text-align: center;
+            word-wrap: break-word;
+            font-weight: bold;
+            background: #f2f2f2;
+        }
+
+        th { cursor: pointer; position: relative; }
+
+        /* destaque para coluna ativa */
+        .coluna-ativa {
+            background: #d6d6d6 !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="titulo-container">
+    <h1>CAÇADOR DE CANAIS 🏆</h1>
+</div>
+
+<div class="info-container">
+    <p class="descricao">
+        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube 
+        e verificando métricas que indicam potencial real de crescimento.
+    </p>
+
+    <ul class="regras">
+        <li>Busca vídeos das últimas <b>96h</b></li>
+        <li>Analisa até <b>100 vídeos</b></li>
+        <li>Canal com <b>1000+ inscritos</b></li>
+        <li>Canal com <b>1+ vídeos</b></li>
+        <li>Canal com até <b>1 mês</b> de criação</li>
+        <li>21 a 30 vídeos = 🔥</li>
+        <li>11 a 20 vídeos = 🔥🔥</li>
+        <li>1 a 10 vídeos = 🔥🔥🔥</li>
+    </ul>
+</div>
+
+<button id="botao" onclick="buscarVideos()">
+    CAÇAR
+    <div class="spinner"></div>
+</button>
+
+<div class="progress-container" id="progressContainer">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<table id="resultados">
+    <thead>
+        <tr>
+            <th data-col="0">Canal</th>
+            <th data-col="1">Inscritos</th>
+            <th data-col="2">Vídeos</th>
+            <th data-col="3">Inscritos/Vídeo</th>
+            <th data-col="4">Views/Inscrito</th>
+            <th data-col="5">Views/Vídeo</th>
+            <th data-col="6">Potencial</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+const API_KEY = "SUA_CHAVE_AQUI";
+let ordem = {};
+let ultimaColuna = null;
+
+/* ---------------- BOTÃO / PROGRESSO ---------------- */
+
+function iniciarAnimacaoBotao() {
+    document.getElementById("botao").classList.add("loading");
+    document.getElementById("progressContainer").style.display = "block";
+    document.getElementById("progressBar").style.width = "0%";
+}
+
+function atualizarProgresso(p) {
+    document.getElementById("progressBar").style.width = p + "%";
+}
+
+function pararAnimacaoBotao() {
+    document.getElementById("botao").classList.remove("loading");
+    setTimeout(() => {
+        document.getElementById("progressContainer").style.display = "none";
+    }, 600);
+}
+
+/* ---------------- BUSCA PRINCIPAL ---------------- */
+
+async function buscarVideos() {
+    iniciarAnimacaoBotao();
+
+    const publishedAfter = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
+
+    const url = 
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=100&key=${API_KEY}`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    const canais = [...new Set(data.items?.map(v => v.snippet.channelId))];
+
+    const grupos = [];
+    while (canais.length) grupos.push(canais.splice(0, 50));
+
+    let total = grupos.length;
+    let atual = 0;
+
+    for (const g of grupos) {
+        await buscarDadosDeVariosCanais(g);
+        atual++;
+        atualizarProgresso(Math.round((atual / total) * 100));
+    }
+
+    atualizarProgresso(100);
+    pararAnimacaoBotao();
+}
+
+/* ---------------- BUSCA EM MASSA ---------------- */
+
+async function buscarDadosDeVariosCanais(listaIds) {
+    const ids = listaIds.join(",");
+    const url = 
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!data.items) return;
+
+    data.items.forEach(processarCanal);
+}
+
+/* ---------------- PROCESSAR CANAL ---------------- */
+
+function processarCanal(c) {
+    const nome = c.snippet.title;
+    const inscritos = Number(c.statistics.subscriberCount || 0);
+    const views = Number(c.statistics.viewCount || 0);
+    const videos = Number(c.statistics.videoCount || 0);
+    const criado = new Date(c.snippet.publishedAt);
+
+    if (inscritos < 1000) return;
+    if (videos < 1) return;
+
+    const dias = (Date.now() - criado) / 86400000;
+    let potencial = null;
+
+    if (dias <= 30) {
+        if (videos >= 21) potencial = "🔥";
+        else if (videos >= 11) potencial = "🔥🔥";
+        else if (videos >= 1) potencial = "🔥🔥🔥";
+    }
+
+    if (!potencial) return;
+
+    adicionarNaTabela(
+        nome,
+        inscritos,
+        videos,
+        (inscritos / videos).toFixed(1),
+        (views / inscritos).toFixed(2),
+        (views / videos).toFixed(1),
+        potencial
+    );
+}
+
+/* ---------------- TABELA ---------------- */
+
+function adicionarNaTabela(...vals) {
+    const tbody = document.querySelector("#resultados tbody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
+    tbody.appendChild(tr);
+}
+
+/* ---------------- ORDENAÇÃO ---------------- */
+
+document.querySelectorAll("th").forEach(th => {
+    th.addEventListener("click", () => ordenar(th));
+});
+
+function ordenar(th) {
+    const col = Number(th.dataset.col);
+    const tbody = document.querySelector("#resultados tbody");
+    const linhas = Array.from(tbody.querySelectorAll("tr"));
+
+    ordem[col] = ordem[col] === "asc" ? "desc" : "asc";
+
+    document.querySelectorAll("th").forEach(h => {
+        h.innerHTML = h.innerHTML.replace(" 🔼", "").replace(" 🔽", "");
+        h.classList.remove("coluna-ativa");
+    });
+
+    th.classList.add("coluna-ativa");
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
+
+    linhas.sort((a, b) => {
+        let v1 = a.children[col].innerText;
+        let v2 = b.children[col].innerText;
+
+        const n1 = parseFloat(v1.replace(",", "."));
+        const n2 = parseFloat(v2.replace(",", "."));
+
+        if (!isNaN(n1) && !isNaN(n2)) {
+            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
+        }
+
+        if (col === 6) {
+            const fogo = v => v.split("🔥").length - 1;
+            return ordem[col] === "asc" ? fogo(v1) - fogo(v2) : fogo(v2) - fogo(v1);
+        }
+
+        return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
+    });
+
+    tbody.innerHTML = "";
+    linhas.forEach(l => tbody.appendChild(l));
+}
+</script>
+
+</body>
+</html>
