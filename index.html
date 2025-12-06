@@ -142,7 +142,7 @@
 <div style="text-align:center; margin-top:10px;">
     <input id="termoBusca" 
            type="text" 
-           placeholder="Digite o termo da busca (deixe vazio para usar 'the')"
+           placeholder="Digite o termo da busca (deixe vazio para usar 'a')"
            style="width:70%; padding:10px; font-size:16px;">
 </div>
 
@@ -198,7 +198,7 @@ async function buscarVideos() {
     iniciarAnimacaoBotao();
 
     const termoDigitado = document.getElementById("termoBusca").value.trim();
-    const termo = termoDigitado === "" ? "the" : termoDigitado;
+    const termo = termoDigitado === "" ? "a" : termoDigitado;
 
     const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -340,3 +340,4 @@ function ordenar(th) {
 
 </body>
 </html>
+
