@@ -7,7 +7,7 @@
     <style>
         body { 
             font-family: Arial; 
-            background: #ffffff; /* fundo branco */
+            background: #ffffff; 
             color: #000; 
             padding: 0; 
             margin: 0;
@@ -26,20 +26,16 @@
             color: #fff; 
             font-size: 42px;
             margin: 0;
-
             text-shadow: 
                 0 0 3px #5a001f,
                 0 0 6px #5a001f,
                 0 0 9px #5a001f;
         }
 
-        /* 🔥 Caixa removida — agora é transparente */
         .info-container {
             max-width: 900px;
             margin: 25px auto;
             padding: 20px 0;
-            color: #000;
-            background: none !important;
         }
 
         p.descricao {
@@ -47,29 +43,28 @@
             text-align: center;
             margin-bottom: 18px;
             font-weight: bold;
-            color: #000;
         }
 
-        /* 🔥 Alinhamento perfeito das caixas */
+        /* 🔥 Alinhamento VERTICAL */
         ul.regras {
             list-style: none;
             padding-left: 0;
             max-width: 700px;
             margin: 0 auto 20px auto;
             font-size: 15px;
-            color: #000;
         }
 
         ul.regras li {
-            margin-bottom: 14px;
+            margin-bottom: 20px;
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column; /* Alinha vertical */
+            gap: 8px;
+            font-weight: bold;
         }
 
         ul.regras input {
-            padding: 5px;
-            width: 120px;
+            padding: 6px;
+            width: 160px;
             font-size: 14px;
         }
 
@@ -152,33 +147,35 @@
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
 
-    <!-- 🔥 Inputs agora alinhados -->
     <ul class="regras">
+
         <li>
-            Busca vídeos dos últimos
-            <input id="diasBusca" type="number" value="14"> dias
+            Busca vídeos dos últimos:
+            <input id="diasBusca" type="number" value="14">
         </li>
 
         <li>
-            Analisa até 
-            <input id="maxVideos" type="number" value="500"> vídeos
+            Analisa até:
+            <input id="maxVideos" type="number" value="500">
         </li>
 
         <li>
-            Canal com 
-            <input id="minInscritos" type="number" value="300"> a
-            <input id="maxInscritos" type="number" value="10000"> inscritos
+            Canal com mínimo fixo de inscritos: <b>300</b>
+            <!-- input removido → valor fixo -->
+            Máximo:
+            <input id="maxInscritos" type="number" value="10000">
         </li>
 
         <li>
-            Canal com máx.
-            <input id="maxVideosCanal" type="number" value="30"> vídeos
+            Canal com máximo de vídeos:
+            <input id="maxVideosCanal" type="number" value="30">
         </li>
 
         <li>
-            Vídeos com 
-            <input id="minViews" type="number" value="5000">+ views
+            Vídeos com mínimo de views:
+            <input id="minViews" type="number" value="5000">
         </li>
+
     </ul>
 </div>
 
@@ -212,7 +209,6 @@
     <tbody></tbody>
 </table>
 
-<!-- 🔥 JS permanece 100% idêntico -->
 <script>
 console.log("JS carregado!");
 
@@ -243,7 +239,7 @@ async function buscarVideos() {
     const diasBusca = Number(document.getElementById("diasBusca").value);
     const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
 
-    const minInscritos = Number(document.getElementById("minInscritos").value);
+    const minInscritos = 300; /* 🔥 Fixo agora */
     const maxInscritos = Number(document.getElementById("maxInscritos").value);
 
     const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
@@ -257,18 +253,15 @@ async function buscarVideos() {
     let videos = [];
 
     while (videos.length < MAX_VIDEOS) {
-
         const url =
           `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${encodeURIComponent(termo)}` +
           `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
 
         const r = await fetch(url);
         const data = await r.json();
-
         if (!data.items) break;
 
         videos.push(...data.items);
-
         nextPageToken = data.nextPageToken || "";
         if (!nextPageToken) break;
     }
@@ -295,20 +288,14 @@ async function buscarVideos() {
 
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
-
-    const url =
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
-
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
     const r = await fetch(url);
     const data = await r.json();
-
     if (!data.items) return;
-
     data.items.forEach(processarCanal);
 }
 
 function processarCanal(c) {
-
     const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
