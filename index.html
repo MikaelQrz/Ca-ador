@@ -17,16 +17,13 @@
             width: 100%;
             background: #000;
             padding: 20px 0;
-            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 12px;
         }
 
         h1 { 
             color: #fff; 
-            text-align: center; 
             font-size: 34px;
             margin: 0;
         }
@@ -34,29 +31,21 @@
         .info-container {
             max-width: 900px;
             margin: 20px auto;
-            display: block;
         }
 
         p.descricao {
             font-size: 15px;
-            line-height: 1.4;
             text-align: center;
             margin-bottom: 18px;
-            color: #333;
             font-weight: bold;
         }
 
         ul.regras {
             list-style: disc;
-            margin: 0 auto;
             padding-left: 40px;
             max-width: 450px;
+            margin: 0 auto 20px auto;
             font-size: 15px;
-            line-height: 1.5;
-        }
-
-        ul.regras li {
-            margin-bottom: 6px;
         }
 
         button { 
@@ -70,8 +59,6 @@
             background: linear-gradient(to right, #ff0000, #4b0000);
             border: 2px solid #000;
             border-radius: 6px;
-            text-transform: uppercase;
-            transition: 0.15s ease;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -80,7 +67,6 @@
 
         button.loading {
             background: #000 !important;
-            color: #fff;
         }
 
         .spinner {
@@ -93,14 +79,9 @@
             display: none;
         }
 
-        button.loading .spinner {
-            display: inline-block;
-        }
+        button.loading .spinner { display: inline-block; }
 
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { from { rotate: 0deg; } to { rotate: 360deg; } }
 
         .progress-container {
             width: calc(100% - 40px);
@@ -123,23 +104,18 @@
             width: calc(100% - 40px); 
             margin: 20px auto; 
             border-collapse: collapse;
-            table-layout: fixed;
         }
 
         th, td { 
             border: 1px solid #ccc; 
             padding: 8px;
             text-align: center;
-            word-wrap: break-word;
             font-weight: bold;
-            background: #f2f2f2;
         }
 
-        th { cursor: pointer; position: relative; }
+        th { cursor: pointer; }
 
-        .coluna-ativa {
-            background: #d6d6d6 !important;
-        }
+        .coluna-ativa { background: #d6d6d6 !important; }
     </style>
 </head>
 <body>
@@ -150,17 +126,24 @@
 
 <div class="info-container">
     <p class="descricao">
-        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube 
-        e verificando métricas que indicam potencial real de crescimento.
+        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
 
     <ul class="regras">
         <li>Busca vídeos dos últimos <b>14 dias</b></li>
-        <li>Analisa até <b>500 vídeos por vogal</b></li>
+        <li>Analisa até <b>500 vídeos</b></li>
         <li>Canal com <b>300 a 10.000 inscritos</b></li>
         <li>Canal com <b>máx. 30 vídeos</b></li>
         <li>Vídeos com <b>5000+ views</b></li>
     </ul>
+</div>
+
+<!-- 🔥 Caixa para digitar termo de busca -->
+<div style="text-align:center; margin-top:10px;">
+    <input id="termoBusca" 
+           type="text" 
+           placeholder="Digite o termo da busca (deixe vazio para usar 'the')"
+           style="width:70%; padding:10px; font-size:16px;">
 </div>
 
 <button id="botao" onclick="buscarVideos()">
@@ -193,20 +176,18 @@ const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
 
 function iniciarAnimacaoBotao() {
-    document.getElementById("botao").classList.add("loading");
-    document.getElementById("progressContainer").style.display = "block";
-    document.getElementById("progressBar").style.width = "0%";
+    botao.classList.add("loading");
+    progressContainer.style.display = "block";
+    progressBar.style.width = "0%";
 }
 
 function atualizarProgresso(p) {
-    document.getElementById("progressBar").style.width = p + "%";
+    progressBar.style.width = p + "%";
 }
 
 function pararAnimacaoBotao() {
-    document.getElementById("botao").classList.remove("loading");
-    setTimeout(() => {
-        document.getElementById("progressContainer").style.display = "none";
-    }, 600);
+    botao.classList.remove("loading");
+    setTimeout(() => progressContainer.style.display = "none", 600);
 }
 
 /* ----------------------------------------------------- */
@@ -216,32 +197,30 @@ function pararAnimacaoBotao() {
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    const vogais = ["a", "e", "i", "o", "u"];
+    const termoDigitado = document.getElementById("termoBusca").value.trim();
+    const termo = termoDigitado === "" ? "the" : termoDigitado;
 
+    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    let nextPageToken = "";
     let videos = [];
     const MAX_VIDEOS = 500;
 
-    for (const letra of vogais) {
+    while (videos.length < MAX_VIDEOS) {
 
-        let nextPageToken = "";
+        const url =
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${encodeURIComponent(termo)}` +
+          `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
 
-        while (videos.length < MAX_VIDEOS) {
+        const r = await fetch(url);
+        const data = await r.json();
 
-            const url =
-              `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${letra}` +
-              `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+        if (!data.items) break;
 
-            const r = await fetch(url);
-            const data = await r.json();
+        videos.push(...data.items);
 
-            if (!data.items) break;
-
-            videos.push(...data.items);
-
-            nextPageToken = data.nextPageToken || "";
-            if (!nextPageToken) break;
-        }
+        nextPageToken = data.nextPageToken || "";
+        if (!nextPageToken) break;
     }
 
     videos = videos.slice(0, MAX_VIDEOS);
@@ -310,10 +289,9 @@ function processarCanal(c) {
 /* ----------------------------------------------------- */
 
 function adicionarNaTabela(...vals) {
-    const tbody = document.querySelector("#resultados tbody");
     const tr = document.createElement("tr");
     tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
-    tbody.appendChild(tr);
+    document.querySelector("#resultados tbody").appendChild(tr);
 }
 
 /* ----------------------------------------------------- */
@@ -343,8 +321,8 @@ function ordenar(th) {
         let v1 = a.children[col].innerText;
         let v2 = b.children[col].innerText;
 
-        const n1 = parseFloat(v1.replace(",", "."));
-        const n2 = parseFloat(v2.replace(",", "."));
+        const n1 = parseFloat(v1);
+        const n2 = parseFloat(v2);
 
         if (!isNaN(n1) && !isNaN(n2)) {
             return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
