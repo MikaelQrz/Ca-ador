@@ -160,6 +160,7 @@
         <li>Canal com <b>300 a 10.000 inscritos</b></li>
         <li>Canal com <b>no máx. 30 vídeos</b></li>
         <li>Vídeos com <b>5000+ views</b></li>
+        <li>ATT <b>ATT</b></li>
     </ul>
 </div>
 
@@ -200,21 +201,21 @@ async function buscarVideos() {
     let videos = [];
 
     for (const letra of vogais) {
-        let nextPageToken = "";
-        while (videos.length < 500) {
-            const url =
-              `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${letra}` +
-              `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+    let nextPageToken = "";
+    while (videos.length < 500) {
+        const url =
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${letra}` +
+          `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
 
-            const r = await fetch(url);
-            const data = await r.json();
-            if (!data.items) break;
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!data.items) break;
 
-            videos.push(...data.items);
-            nextPageToken = data.nextPageToken || "";
-            if (!nextPageToken) break;
-        }
+        videos.push(...data.items);
+        nextPageToken = data.nextPageToken || "";
+        if (!nextPageToken) break;
     }
+}
 
     // 🔥 FILTRAR APENAS VIDEOS COM 5K+ VIEWS
     videos = videos.filter(v => 
@@ -335,3 +336,4 @@ function pararAnimacaoBotao() {
 
 </body>
 </html>
+
