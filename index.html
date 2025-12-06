@@ -155,12 +155,11 @@
     </p>
 
     <ul class="regras">
-        <li>Busca vídeos dos últimos <b>7 dias</b></li>
-        <li>Analisa até <b>500 vídeos</b></li>
-        <li>Canal com <b>1000+ inscritos</b></li>
-        <li>Canal com <b>1+ vídeos</b></li>
-        <li>Canal com <b>no máx. 6 meses</b></li>
-        <li>Canal com <b>no máx. 60 vídeos</b></li>
+        <li>Busca vídeos dos últimos <b>14 dias</b></li>
+        <li>Analisa até <b>500 vídeos por vogal</b></li>
+        <li>Canal com <b>300 a 10.000 inscritos</b></li>
+        <li>Canal com <b>no máx. 30 vídeos</b></li>
+        <li>Vídeos com <b>5000+ views</b></li>
     </ul>
 </div>
 
@@ -190,60 +189,41 @@
 <script>
 console.log("JS carregado!");
 
-const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
+const API_KEY = "SUA_API_AQUI";
 let ordem = {};
-
-function iniciarAnimacaoBotao() {
-    document.getElementById("botao").classList.add("loading");
-    document.getElementById("progressContainer").style.display = "block";
-    document.getElementById("progressBar").style.width = "0%";
-}
-
-function atualizarProgresso(p) {
-    document.getElementById("progressBar").style.width = p + "%";
-}
-
-function pararAnimacaoBotao() {
-    document.getElementById("botao").classList.remove("loading");
-    setTimeout(() => {
-        document.getElementById("progressContainer").style.display = "none";
-    }, 600);
-}
-
-/* ----------------------------------------------------- */
-/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
-/* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const publishedAfter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    let nextPageToken = "";
+    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const vogais = ["a", "e", "i", "o", "u"];
     let videos = [];
-    const MAX_VIDEOS = 500;
 
-    while (videos.length < MAX_VIDEOS) {
-        const url =
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E` +
-          `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+    for (const letra of vogais) {
+        let nextPageToken = "";
+        while (videos.length < 500) {
+            const url =
+              `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${letra}` +
+              `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
 
-        const r = await fetch(url);
-        const data = await r.json();
+            const r = await fetch(url);
+            const data = await r.json();
+            if (!data.items) break;
 
-        if (!data.items) break;
-
-        videos.push(...data.items);
-
-        nextPageToken = data.nextPageToken || "";
-        if (!nextPageToken) break;
+            videos.push(...data.items);
+            nextPageToken = data.nextPageToken || "";
+            if (!nextPageToken) break;
+        }
     }
 
-    videos = videos.slice(0, MAX_VIDEOS);
+    // 🔥 FILTRAR APENAS VIDEOS COM 5K+ VIEWS
+    videos = videos.filter(v => 
+        v.statistics && Number(v.statistics.viewCount) >= 5000
+    );
 
     const canais = [...new Set(videos.map(v => v.snippet.channelId))];
-
     const grupos = [];
+
     while (canais.length) grupos.push(canais.splice(0, 50));
 
     let total = grupos.length;
@@ -259,45 +239,28 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ----------------------------------------------------- */
-/* -------------------- BUSCA EM MASSA ------------------ */
-/* ----------------------------------------------------- */
-
+/* Buscar dados dos canais */
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
-
     const url =
       `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
 
     const r = await fetch(url);
     const data = await r.json();
-
     if (!data.items) return;
 
     data.items.forEach(processarCanal);
 }
 
-/* ----------------------------------------------------- */
-/* --------------------- PROCESSAR CANAL ---------------- */
-/* ----------------------------------------------------- */
-
+/* Filtros de canal */
 function processarCanal(c) {
     const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
-    const criado = new Date(c.snippet.publishedAt);
 
-    if (inscritos < 1000) return;
-    if (videos < 1) return;
-
-    // 🔥 NOVO FILTRO: máximo 60 vídeos
-    if (videos > 60) return;
-
-    // FILTRO: canal criado nos últimos 6 meses
-    const seisMeses = 6 * 30 * 24 * 60 * 60 * 1000;
-    const idade = Date.now() - criado.getTime();
-    if (idade > seisMeses) return;
+    if (inscritos < 300 || inscritos > 10000) return;
+    if (videos < 1 || videos > 30) return;
 
     adicionarNaTabela(
         nome,
@@ -309,10 +272,7 @@ function processarCanal(c) {
     );
 }
 
-/* ----------------------------------------------------- */
-/* ------------------------- TABELA ---------------------- */
-/* ----------------------------------------------------- */
-
+/* Adicionar tabela */
 function adicionarNaTabela(...vals) {
     const tbody = document.querySelector("#resultados tbody");
     const tr = document.createElement("tr");
@@ -320,10 +280,7 @@ function adicionarNaTabela(...vals) {
     tbody.appendChild(tr);
 }
 
-/* ----------------------------------------------------- */
-/* ----------------------- ORDENAÇÃO --------------------- */
-/* ----------------------------------------------------- */
-
+/* Ordenação */
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => ordenar(th));
 });
@@ -346,7 +303,6 @@ function ordenar(th) {
     linhas.sort((a, b) => {
         let v1 = a.children[col].innerText;
         let v2 = b.children[col].innerText;
-
         const n1 = parseFloat(v1.replace(",", "."));
         const n2 = parseFloat(v2.replace(",", "."));
 
@@ -354,13 +310,26 @@ function ordenar(th) {
             return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
         }
 
-        return ordem[col] === "asc"
-            ? v1.localeCompare(v2)
-            : v2.localeCompare(v1);
+        return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
     });
 
     tbody.innerHTML = "";
     linhas.forEach(l => tbody.appendChild(l));
+}
+
+/* Animações */
+function iniciarAnimacaoBotao() {
+    document.getElementById("botao").classList.add("loading");
+    document.getElementById("progressContainer").style.display = "block";
+}
+function atualizarProgresso(p) {
+    document.getElementById("progressBar").style.width = p + "%";
+}
+function pararAnimacaoBotao() {
+    document.getElementById("botao").classList.remove("loading");
+    setTimeout(() => {
+        document.getElementById("progressContainer").style.display = "none";
+    }, 600);
 }
 </script>
 
