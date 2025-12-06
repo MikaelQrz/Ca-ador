@@ -156,7 +156,7 @@
 
     <ul class="regras">
         <li>Busca vídeos dos últimos <b>7 dias</b></li>
-        <li>Analisa até <b>200 / 500 / 1000 vídeos</b></li>
+        <li>Analisa até <b>500 vídeos</b></li>
         <li>Canal com <b>1000+ inscritos</b></li>
         <li>Canal com <b>1+ vídeos</b></li>
         <li>Canal com <b>no máx. 6 meses</b></li>
@@ -190,10 +190,6 @@
 console.log("JS carregado!");
 
 const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
-
-// 🔥 PAGINAÇÃO CONFIGURÁVEL: escolha 200, 500 ou 1000
-const LIMITE_BUSCA = 500;
-
 let ordem = {};
 
 function iniciarAnimacaoBotao() {
@@ -214,23 +210,25 @@ function pararAnimacaoBotao() {
 }
 
 /* ----------------------------------------------------- */
-/* ------------------- BUSCA COM PAGINAÇÃO -------------- */
+/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
 /* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const publishedAfter = new Date(Date.now() - 168 * 60 * 60 * 1000).toISOString();
+    const publishedAfter = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    let videos = [];
     let nextPageToken = "";
-    
-    while (videos.length < LIMITE_BUSCA) {
-        let url =
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+    let videos = [];
+    const MAX_VIDEOS = 500;
 
-        let r = await fetch(url);
-        let data = await r.json();
+    while (videos.length < MAX_VIDEOS) {
+        const url =
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E` +
+          `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+
+        const r = await fetch(url);
+        const data = await r.json();
 
         if (!data.items) break;
 
@@ -239,6 +237,9 @@ async function buscarVideos() {
         nextPageToken = data.nextPageToken || "";
         if (!nextPageToken) break;
     }
+
+    // limitar a 500
+    videos = videos.slice(0, MAX_VIDEOS);
 
     const canais = [...new Set(videos.map(v => v.snippet.channelId))];
 
@@ -254,6 +255,7 @@ async function buscarVideos() {
         atualizarProgresso(Math.round((atual / total) * 100));
     }
 
+    atualizarProgresso(100);
     pararAnimacaoBotao();
 }
 
@@ -289,9 +291,9 @@ function processarCanal(c) {
     if (inscritos < 1000) return;
     if (videos < 1) return;
 
+    // FILTRO: canal criado nos últimos 6 meses
     const seisMeses = 6 * 30 * 24 * 60 * 60 * 1000;
     const idade = Date.now() - criado.getTime();
-
     if (idade > seisMeses) return;
 
     adicionarNaTabela(
@@ -336,7 +338,7 @@ function ordenar(th) {
     });
 
     th.classList.add("coluna-ativa");
-    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽`;
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
 
     linhas.sort((a, b) => {
         let v1 = a.children[col].innerText;
