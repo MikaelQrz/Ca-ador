@@ -219,7 +219,7 @@ async function buscarVideos() {
     const publishedAfter = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
 
     const url =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=50&key=${API_KEY}`;
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=2025&publishedAfter=${publishedAfter}&maxResults=50&key=${API_KEY}`;
 
     console.log("URL chamada:", url);
 
@@ -350,3 +350,4 @@ function ordenar(th) {
 
 </body>
 </html>
+
