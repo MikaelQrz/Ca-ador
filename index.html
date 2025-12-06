@@ -7,7 +7,7 @@
     <style>
         body { 
             font-family: Arial; 
-            background: #e6e6e6; /* fundo cinza claro */
+            background: #e6e6e6;
             color: #000; 
             padding: 0; 
             margin: 0;
@@ -27,7 +27,7 @@
             font-size: 42px;
             margin: 0;
 
-            /* 🔥 sombra neon vinho + menor */
+            /* sombra neon vinho */
             text-shadow: 
                 0 0 3px #5a001f,
                 0 0 6px #5a001f,
@@ -37,10 +37,7 @@
         .info-container {
             max-width: 900px;
             margin: 25px auto;
-
-            /* 🔥 cinza escuro mais claro */
             background: #4a4a4a;
-
             padding: 25px;
             border-radius: 10px;
             color: #fff;
@@ -55,12 +52,23 @@
         }
 
         ul.regras {
-            list-style: disc;
-            padding-left: 40px;
-            max-width: 450px;
+            list-style: none;
+            padding-left: 0;
+            max-width: 600px;
             margin: 0 auto 20px auto;
             font-size: 15px;
             color: #ddd;
+        }
+
+        ul.regras li {
+            margin-bottom: 12px;
+        }
+
+        ul.regras input {
+            margin-left: 10px;
+            padding: 5px;
+            width: 110px;
+            font-size: 14px;
         }
 
         button { 
@@ -124,16 +132,12 @@
             padding: 8px;
             text-align: center;
             font-weight: bold;
-
-            /* 🔥 caixas das colunas agora azuis */
             background: #b3d1ff;
         }
 
         th { cursor: pointer; }
 
-        .coluna-ativa { 
-            background: #99c2ff !important;
-        }
+        .coluna-ativa { background: #99c2ff !important; }
     </style>
 </head>
 <body>
@@ -147,12 +151,33 @@
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
 
+    <!-- 🔥 Agora cada item tem uma caixa editável -->
     <ul class="regras">
-        <li>Busca vídeos dos últimos <b>14 dias</b></li>
-        <li>Analisa até <b>500 vídeos</b></li>
-        <li>Canal com <b>300 a 10.000 inscritos</b></li>
-        <li>Canal com <b>máx. 30 vídeos</b></li>
-        <li>Vídeos com <b>5000+ views</b></li>
+        <li>
+            Busca vídeos dos últimos
+            <input id="diasBusca" type="number" value="14"> dias
+        </li>
+
+        <li>
+            Analisa até 
+            <input id="maxVideos" type="number" value="500"> vídeos
+        </li>
+
+        <li>
+            Canal com 
+            <input id="minInscritos" type="number" value="300"> a
+            <input id="maxInscritos" type="number" value="10000"> inscritos
+        </li>
+
+        <li>
+            Canal com máx. 
+            <input id="maxVideosCanal" type="number" value="30"> vídeos
+        </li>
+
+        <li>
+            Vídeos com 
+            <input id="minViews" type="number" value="5000">+ views
+        </li>
     </ul>
 </div>
 
@@ -213,11 +238,22 @@ async function buscarVideos() {
     const termoDigitado = document.getElementById("termoBusca").value.trim();
     const termo = termoDigitado === "" ? "a" : termoDigitado;
 
-    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    // 🔥 valores configuráveis agora vêm dos inputs
+    const diasBusca = Number(document.getElementById("diasBusca").value);
+    const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
+
+    const minInscritos = Number(document.getElementById("minInscritos").value);
+    const maxInscritos = Number(document.getElementById("maxInscritos").value);
+
+    const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
+    const minViews = Number(document.getElementById("minViews").value);
+
+    window.FILTROS = { minInscritos, maxInscritos, maxVideosCanal, minViews };
+
+    const publishedAfter = new Date(Date.now() - diasBusca * 24 * 60 * 60 * 1000).toISOString();
 
     let nextPageToken = "";
     let videos = [];
-    const MAX_VIDEOS = 500;
 
     while (videos.length < MAX_VIDEOS) {
 
@@ -271,13 +307,16 @@ async function buscarDadosDeVariosCanais(listaIds) {
 }
 
 function processarCanal(c) {
+
     const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
 
-    if (inscritos < 300 || inscritos > 10000) return;
-    if (videos < 1 || videos > 30) return;
+    const { minInscritos, maxInscritos, maxVideosCanal } = window.FILTROS;
+
+    if (inscritos < minInscritos || inscritos > maxInscritos) return;
+    if (videos < 1 || videos > maxVideosCanal) return;
 
     adicionarNaTabela(
         nome,
