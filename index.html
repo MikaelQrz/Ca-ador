@@ -9,6 +9,7 @@
             font-family: Arial; 
             background: #fff; 
             color: #000; 
+            padding: 0; 
             margin: 0;
         }
 
@@ -18,6 +19,7 @@
             padding: 20px 0;
             display: flex;
             justify-content: center;
+            align-items: center;
         }
 
         h1 { 
@@ -38,30 +40,17 @@
             font-weight: bold;
         }
 
-        .campo-config {
-            max-width: 600px;
-            margin: 10px auto;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .campo-config label {
-            width: 260px;
-            font-size: 15px;
-            text-align: right;
-            font-weight: bold;
-        }
-
-        .campo-config input {
-            flex: 1;
-            padding: 8px;
+        ul.regras {
+            list-style: disc;
+            padding-left: 40px;
+            max-width: 450px;
+            margin: 0 auto 20px auto;
             font-size: 15px;
         }
 
         button { 
             padding: 12px; 
-            margin: 15px 20px; 
+            margin: 10px 20px; 
             width: calc(100% - 40px); 
             font-size: 18px;
             font-weight: bold;
@@ -111,7 +100,7 @@
 
         table { 
             width: calc(100% - 40px); 
-            margin: 25px auto; 
+            margin: 20px auto; 
             border-collapse: collapse;
         }
 
@@ -123,7 +112,38 @@
         }
 
         th { cursor: pointer; }
+
         .coluna-ativa { background: #d6d6d6 !important; }
+
+        /* 🔥 Estilo das caixas novas */
+        .filtro-box {
+            max-width: 600px;
+            margin: 10px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .filtro-linha {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filtro-linha label {
+            width: 260px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .filtro-linha input {
+            flex: 1;
+            padding: 8px;
+            font-size: 15px;
+            background: #efefef;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -136,37 +156,52 @@
     <p class="descricao">
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
+
+    <ul class="regras">
+        <li>Busca vídeos dos últimos <b>14 dias</b></li>
+        <li>Analisa até <b>500 vídeos</b></li>
+        <li>Canal com <b>300 a 10.000 inscritos</b></li>
+        <li>Canal com <b>máx. 30 vídeos</b></li>
+        <li>Vídeos com <b>5000+ views</b></li>
+    </ul>
 </div>
 
-<!-- 🔥 CAMPOS DE CONFIGURAÇÃO -->
-<div class="campo-config">
-    <label>Buscar vídeos dos últimos:</label>
-    <input id="diasBusca" type="number" value="14">
+<!-- 🔥 NOVAS CAIXAS DE TEXTO -->
+<div class="filtro-box">
+
+    <div class="filtro-linha">
+        <label>Buscar vídeos dos últimos:</label>
+        <input id="diasInput" type="number" placeholder="Ex: 14">
+    </div>
+
+    <div class="filtro-linha">
+        <label>Analisa até:</label>
+        <input id="limiteVideosInput" type="number" placeholder="Ex: 500">
+    </div>
+
+    <div class="filtro-linha">
+        <label>Busca canais com 300 a:</label>
+        <input id="maxInscritosInput" type="number" placeholder="Ex: 10000">
+    </div>
+
+    <div class="filtro-linha">
+        <label>Busca canais com 1 a:</label>
+        <input id="maxVideosCanalInput" type="number" placeholder="Ex: 30">
+    </div>
+
+    <div class="filtro-linha">
+        <label>Busca vídeos com mais de:</label>
+        <input id="minViewsInput" type="number" placeholder="Ex: 5000">
+    </div>
+
 </div>
 
-<div class="campo-config">
-    <label>Analisa até:</label>
-    <input id="maxVideos" type="number" value="500">
-</div>
-
-<div class="campo-config">
-    <label>Busca canais com 300 a:</label>
-    <input id="maxSubs" type="number" value="10000">
-</div>
-
-<div class="campo-config">
-    <label>Busca canais com 1 a:</label>
-    <input id="maxVideosCanal" type="number" value="30">
-</div>
-
-<div class="campo-config">
-    <label>Busca vídeos com mais de:</label>
-    <input id="minViews" type="number" value="5000">
-</div>
-
-<div class="campo-config">
-    <label>Termo de busca (vazio usa 'a'):</label>
-    <input id="termoBusca" type="text" placeholder="ex: estoico, roma, samurai">
+<!-- 🔥 Caixa do termo de busca -->
+<div style="text-align:center; margin-top:10px;">
+    <input id="termoBusca" 
+           type="text" 
+           placeholder="Digite o termo da busca (deixe vazio para usar 'a')"
+           style="width:70%; padding:10px; font-size:16px;">
 </div>
 
 <button id="botao" onclick="buscarVideos()">
@@ -181,7 +216,7 @@
 <table id="resultados">
     <thead>
         <tr>
-            <th data-col="0">Handle</th>
+            <th data-col="0">Canal</th>
             <th data-col="1">Inscritos</th>
             <th data-col="2">Vídeos</th>
             <th data-col="3">Inscritos/Vídeo</th>
@@ -195,7 +230,7 @@
 <script>
 console.log("JS carregado!");
 
-const API_KEY = "SUA_CHAVE_AQUI";
+const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
 
 function iniciarAnimacaoBotao() {
@@ -203,29 +238,36 @@ function iniciarAnimacaoBotao() {
     progressContainer.style.display = "block";
     progressBar.style.width = "0%";
 }
-function atualizarProgresso(p) { progressBar.style.width = p + "%"; }
+
+function atualizarProgresso(p) {
+    progressBar.style.width = p + "%";
+}
+
 function pararAnimacaoBotao() {
     botao.classList.remove("loading");
     setTimeout(() => progressContainer.style.display = "none", 600);
 }
 
 /* ----------------------------------------------------- */
-/* ---------------------- BUSCAR VÍDEOS ---------------- */
+/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
 /* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const dias = Number(diasBusca.value);
-    const termo = termoBusca.value.trim() || "a";
-    const MAX_VIDEOS = Number(maxVideos.value);
+    const termoDigitado = termoBusca.value.trim();
+    const termo = termoDigitado === "" ? "a" : termoDigitado;
 
+    const dias = Number(diasInput.value) || 14;
     const publishedAfter = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
 
     let videos = [];
+    const MAX_VIDEOS = Number(limiteVideosInput.value) || 500;
+
     let nextPageToken = "";
 
     while (videos.length < MAX_VIDEOS) {
+
         const url =
           `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${encodeURIComponent(termo)}` +
           `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
@@ -265,8 +307,8 @@ async function buscarVideos() {
 /* -------------------- BUSCA EM MASSA ------------------ */
 /* ----------------------------------------------------- */
 
-async function buscarDadosDeVariosCanais(idsLista) {
-    const ids = idsLista.join(",");
+async function buscarDadosDeVariosCanais(listaIds) {
+    const ids = listaIds.join(",");
 
     const url =
       `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
@@ -275,6 +317,7 @@ async function buscarDadosDeVariosCanais(idsLista) {
     const data = await r.json();
 
     if (!data.items) return;
+
     data.items.forEach(processarCanal);
 }
 
@@ -283,19 +326,22 @@ async function buscarDadosDeVariosCanais(idsLista) {
 /* ----------------------------------------------------- */
 
 function processarCanal(c) {
-    const handle = c.snippet.customUrl || "@indefinido";
+
+    const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
 
-    const maxSubsUser = Number(maxSubs.value);
-    const maxVideosUser = Number(maxVideosCanal.value);
+    const maxInscritos = Number(maxInscritosInput.value) || 1000000000;
+    const maxVideos = Number(maxVideosCanalInput.value) || 1000000;
+    const minViews = Number(minViewsInput.value) || 0;
 
-    if (inscritos < 300 || inscritos > maxSubsUser) return;
-    if (videos < 1 || videos > maxVideosUser) return;
+    if (inscritos < 300 || inscritos > maxInscritos) return;
+    if (videos < 1 || videos > maxVideos) return;
+    if (views < minViews) return;
 
     adicionarNaTabela(
-        handle,
+        nome,
         inscritos,
         videos,
         (inscritos / videos).toFixed(1),
@@ -305,7 +351,7 @@ function processarCanal(c) {
 }
 
 /* ----------------------------------------------------- */
-/* ------------------------- TABELA --------------------- */
+/* ------------------------- TABELA ---------------------- */
 /* ----------------------------------------------------- */
 
 function adicionarNaTabela(...vals) {
@@ -315,7 +361,7 @@ function adicionarNaTabela(...vals) {
 }
 
 /* ----------------------------------------------------- */
-/* ----------------------- ORDENAÇÃO -------------------- */
+/* ----------------------- ORDENAÇÃO --------------------- */
 /* ----------------------------------------------------- */
 
 document.querySelectorAll("th").forEach(th => {
@@ -329,13 +375,28 @@ function ordenar(th) {
 
     ordem[col] = ordem[col] === "asc" ? "desc" : "asc";
 
+    document.querySelectorAll("th").forEach(h => {
+        h.innerHTML = h.innerHTML.replace(" 🔼", "").replace(" 🔽", "");
+        h.classList.remove("coluna-ativa");
+    });
+
+    th.classList.add("coluna-ativa");
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
+
     linhas.sort((a, b) => {
-        const v1 = parseFloat(a.children[col].innerText) || a.children[col].innerText;
-        const v2 = parseFloat(b.children[col].innerText) || b.children[col].innerText;
+        let v1 = a.children[col].innerText;
+        let v2 = b.children[col].innerText;
+
+        const n1 = parseFloat(v1);
+        const n2 = parseFloat(v2);
+
+        if (!isNaN(n1) && !isNaN(n2)) {
+            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
+        }
 
         return ordem[col] === "asc"
-            ? (v1 > v2 ? 1 : -1)
-            : (v1 < v2 ? 1 : -1);
+            ? v1.localeCompare(v2)
+            : v2.localeCompare(v1);
     });
 
     tbody.innerHTML = "";
