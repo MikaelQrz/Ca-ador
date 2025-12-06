@@ -159,10 +159,6 @@
         <li>Analisa até <b>100 vídeos</b></li>
         <li>Canal com <b>1000+ inscritos</b></li>
         <li>Canal com <b>1+ vídeos</b></li>
-        <li>Canal com até <b>1 mês</b> de criação</li>
-        <li>21 a 30 vídeos = 🔥</li>
-        <li>11 a 20 vídeos = 🔥🔥</li>
-        <li>1 a 10 vídeos = 🔥🔥🔥</li>
     </ul>
 </div>
 
@@ -184,7 +180,6 @@
             <th data-col="3">Inscritos/Vídeo</th>
             <th data-col="4">Views/Inscrito</th>
             <th data-col="5">Views/Vídeo</th>
-            <th data-col="6">Potencial</th>
         </tr>
     </thead>
     <tbody></tbody>
@@ -195,7 +190,6 @@ console.log("JS carregado!");
 
 const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
-let ultimaColuna = null;
 
 function iniciarAnimacaoBotao() {
     document.getElementById("botao").classList.add("loading");
@@ -228,28 +222,10 @@ async function buscarVideos() {
 
     console.log("URL chamada:", url);
 
-    let r;
-    try {
-        r = await fetch(url);
-        console.log("Resposta bruta:", r);
-    } catch (e) {
-        console.error("Erro no FETCH:", e);
-        pararAnimacaoBotao();
-        return;
-    }
-
-    let data;
-    try {
-        data = await r.json();
-        console.log("JSON retornado pela API:", data);
-    } catch (e) {
-        console.error("Erro ao converter JSON:", e);
-        pararAnimacaoBotao();
-        return;
-    }
+    let r = await fetch(url);
+    let data = await r.json();
 
     if (!data.items) {
-        console.error("Nenhum item retornado. Erro da API:", data);
         pararAnimacaoBotao();
         return;
     }
@@ -285,8 +261,6 @@ async function buscarDadosDeVariosCanais(listaIds) {
     const r = await fetch(url);
     const data = await r.json();
 
-    console.log("Dados dos canais:", data);
-
     if (!data.items) return;
 
     data.items.forEach(processarCanal);
@@ -301,21 +275,9 @@ function processarCanal(c) {
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
-    const criado = new Date(c.snippet.publishedAt);
 
     if (inscritos < 1000) return;
     if (videos < 1) return;
-
-    const dias = (Date.now() - criado) / 86400000;
-    let potencial = null;
-
-    if (dias <= 30) {
-        if (videos >= 21) potencial = "🔥";
-        else if (videos >= 11) potencial = "🔥🔥";
-        else if (videos >= 1) potencial = "🔥🔥🔥";
-    }
-
-    if (!potencial) return;
 
     adicionarNaTabela(
         nome,
@@ -323,8 +285,7 @@ function processarCanal(c) {
         videos,
         (inscritos / videos).toFixed(1),
         (views / inscritos).toFixed(2),
-        (views / videos).toFixed(1),
-        potencial
+        (views / videos).toFixed(1)
     );
 }
 
@@ -371,11 +332,6 @@ function ordenar(th) {
 
         if (!isNaN(n1) && !isNaN(n2)) {
             return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
-        }
-
-        if (col === 6) {
-            const fogo = v => v.split("🔥").length - 1;
-            return ordem[col] === "asc" ? fogo(v1) - fogo(v2) : fogo(v2) - fogo(v1);
         }
 
         return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
