@@ -7,7 +7,7 @@
     <style>
         body { 
             font-family: Arial; 
-            background: #fff; 
+            background: #e6e6e6; /* fundo cinza claro */
             color: #000; 
             padding: 0; 
             margin: 0;
@@ -16,7 +16,7 @@
         .titulo-container {
             width: 100%;
             background: #000;
-            padding: 20px 0;
+            padding: 25px 0;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,13 +24,18 @@
 
         h1 { 
             color: #fff; 
-            font-size: 34px;
+            font-size: 42px; /* maior */
             margin: 0;
+            text-shadow: 0 0 6px red, 0 0 12px red, 0 0 18px red; /* sombra neon vermelha */
         }
 
         .info-container {
             max-width: 900px;
-            margin: 20px auto;
+            margin: 25px auto;
+            background: #333;               /* caixa escura */
+            padding: 25px;
+            border-radius: 10px;
+            color: #fff;                    /* texto claro no fundo escuro */
         }
 
         p.descricao {
@@ -38,6 +43,7 @@
             text-align: center;
             margin-bottom: 18px;
             font-weight: bold;
+            color: #fff;
         }
 
         ul.regras {
@@ -46,6 +52,7 @@
             max-width: 450px;
             margin: 0 auto 20px auto;
             font-size: 15px;
+            color: #ddd;
         }
 
         button { 
@@ -111,11 +118,14 @@
             padding: 8px;
             text-align: center;
             font-weight: bold;
+            background: #fff7b3; /* amarelo claro */
         }
 
         th { cursor: pointer; }
 
-        .coluna-ativa { background: #d6d6d6 !important; }
+        .coluna-ativa { 
+            background: #ffe680 !important; 
+        }
     </style>
 </head>
 <body>
@@ -169,6 +179,8 @@
     <tbody></tbody>
 </table>
 
+<!-- JS continua exatamente igual -->
+
 <script>
 console.log("JS carregado!");
 
@@ -189,10 +201,6 @@ function pararAnimacaoBotao() {
     botao.classList.remove("loading");
     setTimeout(() => progressContainer.style.display = "none", 600);
 }
-
-/* ----------------------------------------------------- */
-/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
-/* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
@@ -243,10 +251,6 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ----------------------------------------------------- */
-/* -------------------- BUSCA EM MASSA ------------------ */
-/* ----------------------------------------------------- */
-
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
 
@@ -260,10 +264,6 @@ async function buscarDadosDeVariosCanais(listaIds) {
 
     data.items.forEach(processarCanal);
 }
-
-/* ----------------------------------------------------- */
-/* --------------------- PROCESSAR CANAL ---------------- */
-/* ----------------------------------------------------- */
 
 function processarCanal(c) {
     const nome = c.snippet.title;
@@ -284,19 +284,11 @@ function processarCanal(c) {
     );
 }
 
-/* ----------------------------------------------------- */
-/* ------------------------- TABELA ---------------------- */
-/* ----------------------------------------------------- */
-
 function adicionarNaTabela(...vals) {
     const tr = document.createElement("tr");
     tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
     document.querySelector("#resultados tbody").appendChild(tr);
 }
-
-/* ----------------------------------------------------- */
-/* ----------------------- ORDENAÇÃO --------------------- */
-/* ----------------------------------------------------- */
 
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => ordenar(th));
