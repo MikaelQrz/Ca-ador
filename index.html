@@ -17,11 +17,9 @@
             width: 100%;
             background: #000;
             padding: 20px 0;
-            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 12px;
         }
 
         h1 { 
@@ -34,7 +32,6 @@
         .info-container {
             max-width: 900px;
             margin: 20px auto;
-            display: block;
         }
 
         p.descricao {
@@ -42,7 +39,6 @@
             line-height: 1.4;
             text-align: center;
             margin-bottom: 18px;
-            color: #333;
             font-weight: bold;
         }
 
@@ -53,10 +49,6 @@
             max-width: 450px;
             font-size: 15px;
             line-height: 1.5;
-        }
-
-        ul.regras li {
-            margin-bottom: 6px;
         }
 
         button { 
@@ -70,7 +62,6 @@
             background: linear-gradient(to right, #ff0000, #4b0000);
             border: 2px solid #000;
             border-radius: 6px;
-            text-transform: uppercase;
             transition: 0.15s ease;
             display: flex;
             justify-content: center;
@@ -80,7 +71,6 @@
 
         button.loading {
             background: #000 !important;
-            color: #fff;
         }
 
         .spinner {
@@ -93,9 +83,7 @@
             display: none;
         }
 
-        button.loading .spinner {
-            display: inline-block;
-        }
+        button.loading .spinner { display: inline-block; }
 
         @keyframes spin {
             from { transform: rotate(0deg); }
@@ -123,19 +111,17 @@
             width: calc(100% - 40px); 
             margin: 20px auto; 
             border-collapse: collapse;
-            table-layout: fixed;
         }
 
         th, td { 
             border: 1px solid #ccc; 
             padding: 8px;
             text-align: center;
-            word-wrap: break-word;
             font-weight: bold;
             background: #f2f2f2;
         }
 
-        th { cursor: pointer; position: relative; }
+        th { cursor: pointer; }
 
         .coluna-ativa {
             background: #d6d6d6 !important;
@@ -150,19 +136,17 @@
 
 <div class="info-container">
     <p class="descricao">
-        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube 
-        e verificando métricas que indicam potencial real de crescimento.
+        Sistema para encontrar CANAIS NOVOS com forte potencial de crescimento.
     </p>
 
     <ul class="regras">
         <li>Busca vídeos das últimas <b>96h</b></li>
-        <li>Analisa até <b>100 vídeos</b></li>
+        <li>Analisa até <b>50 vídeos</b></li>
         <li>Canal com <b>1000+ inscritos</b></li>
-        <li>Canal com <b>1+ vídeos</b></li>
-        <li>Canal com até <b>1 mês</b> de criação</li>
-        <li>21 a 30 vídeos = 🔥</li>
-        <li>11 a 20 vídeos = 🔥🔥</li>
-        <li>1 a 10 vídeos = 🔥🔥🔥</li>
+        <li>Canal com até <b>3 meses</b> de criação</li>
+        <li>40 a 60 vídeos = 🔥</li>
+        <li>20 a 39 vídeos = 🔥🔥</li>
+        <li>1 a 19 vídeos = 🔥🔥🔥</li>
     </ul>
 </div>
 
@@ -194,8 +178,6 @@
 console.log("JS carregado!");
 
 const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
-let ordem = {};
-let ultimaColuna = null;
 
 function iniciarAnimacaoBotao() {
     document.getElementById("botao").classList.add("loading");
@@ -214,9 +196,7 @@ function pararAnimacaoBotao() {
     }, 600);
 }
 
-/* ----------------------------------------------------- */
-/* -------------------  BUSCA PRINCIPAL ----------------- */
-/* ----------------------------------------------------- */
+/* ---------------- BUSCA PRINCIPAL ---------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
@@ -224,35 +204,12 @@ async function buscarVideos() {
     const publishedAfter = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
 
     const url =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=100&key=${API_KEY}`;
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=50&key=${API_KEY}`;
 
-    console.log("URL chamada:", url);
+    let r = await fetch(url);
+    let data = await r.json();
 
-    let r;
-    try {
-        r = await fetch(url);
-        console.log("Resposta bruta:", r);
-    } catch (e) {
-        console.error("Erro no FETCH:", e);
-        pararAnimacaoBotao();
-        return;
-    }
-
-    let data;
-    try {
-        data = await r.json();
-        console.log("JSON retornado pela API:", data);
-    } catch (e) {
-        console.error("Erro ao converter JSON:", e);
-        pararAnimacaoBotao();
-        return;
-    }
-
-    if (!data.items) {
-        console.error("Nenhum item retornado. Erro da API:", data);
-        pararAnimacaoBotao();
-        return;
-    }
+    if (!data.items) { pararAnimacaoBotao(); return; }
 
     const canais = [...new Set(data.items.map(v => v.snippet.channelId))];
 
@@ -272,9 +229,7 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ----------------------------------------------------- */
-/* -------------------- BUSCA EM MASSA ------------------ */
-/* ----------------------------------------------------- */
+/* ---------------- BUSCA EM MASSA ---------------- */
 
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
@@ -285,16 +240,12 @@ async function buscarDadosDeVariosCanais(listaIds) {
     const r = await fetch(url);
     const data = await r.json();
 
-    console.log("Dados dos canais:", data);
-
     if (!data.items) return;
 
     data.items.forEach(processarCanal);
 }
 
-/* ----------------------------------------------------- */
-/* --------------------- PROCESSAR CANAL ---------------- */
-/* ----------------------------------------------------- */
+/* ---------------- PROCESSAR CANAL ---------------- */
 
 function processarCanal(c) {
     const nome = c.snippet.title;
@@ -304,18 +255,16 @@ function processarCanal(c) {
     const criado = new Date(c.snippet.publishedAt);
 
     if (inscritos < 1000) return;
-    if (videos < 1) return;
 
     const dias = (Date.now() - criado) / 86400000;
+    if (dias > 90) return; // 3 meses
+
     let potencial = null;
 
-    if (dias <= 30) {
-        if (videos >= 21) potencial = "🔥";
-        else if (videos >= 11) potencial = "🔥🔥";
-        else if (videos >= 1) potencial = "🔥🔥🔥";
-    }
-
-    if (!potencial) return;
+    if (videos >= 40 && videos <= 60) potencial = "🔥";
+    else if (videos >= 20 && videos <= 39) potencial = "🔥🔥";
+    else if (videos >= 1 && videos <= 19) potencial = "🔥🔥🔥";
+    else return;
 
     adicionarNaTabela(
         nome,
@@ -328,61 +277,13 @@ function processarCanal(c) {
     );
 }
 
-/* ----------------------------------------------------- */
-/* ------------------------- TABELA ---------------------- */
-/* ----------------------------------------------------- */
+/* ---------------- ADICIONAR TABELA ---------------- */
 
 function adicionarNaTabela(...vals) {
     const tbody = document.querySelector("#resultados tbody");
     const tr = document.createElement("tr");
     tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
     tbody.appendChild(tr);
-}
-
-/* ----------------------------------------------------- */
-/* ----------------------- ORDENAÇÃO --------------------- */
-/* ----------------------------------------------------- */
-
-document.querySelectorAll("th").forEach(th => {
-    th.addEventListener("click", () => ordenar(th));
-});
-
-function ordenar(th) {
-    const col = Number(th.dataset.col);
-    const tbody = document.querySelector("#resultados tbody");
-    const linhas = Array.from(tbody.querySelectorAll("tr"));
-
-    ordem[col] = ordem[col] === "asc" ? "desc" : "asc";
-
-    document.querySelectorAll("th").forEach(h => {
-        h.innerHTML = h.innerHTML.replace(" 🔼", "").replace(" 🔽", "");
-        h.classList.remove("coluna-ativa");
-    });
-
-    th.classList.add("coluna-ativa");
-    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
-
-    linhas.sort((a, b) => {
-        let v1 = a.children[col].innerText;
-        let v2 = b.children[col].innerText;
-
-        const n1 = parseFloat(v1.replace(",", "."));
-        const n2 = parseFloat(v2.replace(",", "."));
-
-        if (!isNaN(n1) && !isNaN(n2)) {
-            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
-        }
-
-        if (col === 6) {
-            const fogo = v => v.split("🔥").length - 1;
-            return ordem[col] === "asc" ? fogo(v1) - fogo(v2) : fogo(v2) - fogo(v1);
-        }
-
-        return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
-    });
-
-    tbody.innerHTML = "";
-    linhas.forEach(l => tbody.appendChild(l));
 }
 </script>
 
