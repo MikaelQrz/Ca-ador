@@ -156,10 +156,13 @@
 
     <ul class="regras">
         <li>Busca vídeos das últimas <b>96h</b></li>
-        <li>Analisa até <b>50 vídeos</b></li>
+        <li>Analisa até <b>100 vídeos</b></li>
         <li>Canal com <b>1000+ inscritos</b></li>
         <li>Canal com <b>1+ vídeos</b></li>
-        <li>Canal com até <b>3 meses</b> de criação</li>
+        <li>Canal com até <b>1 mês</b> de criação</li>
+        <li>21 a 30 vídeos = 🔥</li>
+        <li>11 a 20 vídeos = 🔥🔥</li>
+        <li>1 a 10 vídeos = 🔥🔥🔥</li>
     </ul>
 </div>
 
@@ -190,7 +193,7 @@
 <script>
 console.log("JS carregado!");
 
-const API_KEY = "SUA_CHAVE_AQUI"; /* coloque sua chave aqui */
+const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
 let ultimaColuna = null;
 
@@ -211,7 +214,9 @@ function pararAnimacaoBotao() {
     }, 600);
 }
 
-/* ---------------- BUSCA PRINCIPAL ---------------- */
+/* ----------------------------------------------------- */
+/* -------------------  BUSCA PRINCIPAL ----------------- */
+/* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
@@ -219,14 +224,32 @@ async function buscarVideos() {
     const publishedAfter = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
 
     const url =
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=2025&publishedAfter=${publishedAfter}&maxResults=50&key=${API_KEY}`;
+      `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=100&key=${API_KEY}`;
 
     console.log("URL chamada:", url);
 
-    const r = await fetch(url);
-    const data = await r.json();
+    let r;
+    try {
+        r = await fetch(url);
+        console.log("Resposta bruta:", r);
+    } catch (e) {
+        console.error("Erro no FETCH:", e);
+        pararAnimacaoBotao();
+        return;
+    }
+
+    let data;
+    try {
+        data = await r.json();
+        console.log("JSON retornado pela API:", data);
+    } catch (e) {
+        console.error("Erro ao converter JSON:", e);
+        pararAnimacaoBotao();
+        return;
+    }
 
     if (!data.items) {
+        console.error("Nenhum item retornado. Erro da API:", data);
         pararAnimacaoBotao();
         return;
     }
@@ -249,7 +272,9 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ---------------- BUSCA EM MASSA ---------------- */
+/* ----------------------------------------------------- */
+/* -------------------- BUSCA EM MASSA ------------------ */
+/* ----------------------------------------------------- */
 
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
@@ -260,12 +285,16 @@ async function buscarDadosDeVariosCanais(listaIds) {
     const r = await fetch(url);
     const data = await r.json();
 
+    console.log("Dados dos canais:", data);
+
     if (!data.items) return;
 
     data.items.forEach(processarCanal);
 }
 
-/* ---------------- PROCESSAR CANAL ---------------- */
+/* ----------------------------------------------------- */
+/* --------------------- PROCESSAR CANAL ---------------- */
+/* ----------------------------------------------------- */
 
 function processarCanal(c) {
     const nome = c.snippet.title;
@@ -278,10 +307,15 @@ function processarCanal(c) {
     if (videos < 1) return;
 
     const dias = (Date.now() - criado) / 86400000;
+    let potencial = null;
 
-    if (dias > 90) return; // agora até 3 meses
+    if (dias <= 30) {
+        if (videos >= 21) potencial = "🔥";
+        else if (videos >= 11) potencial = "🔥🔥";
+        else if (videos >= 1) potencial = "🔥🔥🔥";
+    }
 
-    let potencial = "🔥"; // placeholder por enquanto
+    if (!potencial) return;
 
     adicionarNaTabela(
         nome,
@@ -294,7 +328,9 @@ function processarCanal(c) {
     );
 }
 
-/* ---------------- TABELA ---------------- */
+/* ----------------------------------------------------- */
+/* ------------------------- TABELA ---------------------- */
+/* ----------------------------------------------------- */
 
 function adicionarNaTabela(...vals) {
     const tbody = document.querySelector("#resultados tbody");
@@ -303,7 +339,9 @@ function adicionarNaTabela(...vals) {
     tbody.appendChild(tr);
 }
 
-/* ---------------- ORDENAÇÃO ---------------- */
+/* ----------------------------------------------------- */
+/* ----------------------- ORDENAÇÃO --------------------- */
+/* ----------------------------------------------------- */
 
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => ordenar(th));
@@ -350,4 +388,3 @@ function ordenar(th) {
 
 </body>
 </html>
-
