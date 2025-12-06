@@ -13,7 +13,6 @@
             margin: 0;
         }
 
-        /* 🔥 TÍTULO FULL WIDTH */
         .titulo-container {
             width: 100%;
             background: #000;
@@ -32,7 +31,6 @@
             margin: 0;
         }
 
-        /* 🔥 DESCRIÇÃO + LISTA */
         .info-container {
             max-width: 900px;
             margin: 20px auto;
@@ -61,7 +59,6 @@
             margin-bottom: 6px;
         }
 
-        /* BOTÃO + SPINNER */
         button { 
             padding: 12px; 
             margin: 10px 20px; 
@@ -105,7 +102,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* 🔥 BARRA DE PROGRESSO VERDE */
         .progress-container {
             width: calc(100% - 40px);
             margin: 15px auto;
@@ -123,7 +119,6 @@
             transition: width 0.25s ease;
         }
 
-        /* 🔥 TABELA CINZA */
         table { 
             width: calc(100% - 40px); 
             margin: 20px auto; 
@@ -142,11 +137,9 @@
 
         th { cursor: pointer; position: relative; }
 
-        /* destaque para coluna ativa */
         .coluna-ativa {
             background: #d6d6d6 !important;
         }
-
     </style>
 </head>
 <body>
@@ -199,11 +192,10 @@
 
 <script>
 console.log("JS carregado!");
+
 const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
 let ultimaColuna = null;
-
-/* ---------------- BOTÃO / PROGRESSO ---------------- */
 
 function iniciarAnimacaoBotao() {
     document.getElementById("botao").classList.add("loading");
@@ -222,20 +214,47 @@ function pararAnimacaoBotao() {
     }, 600);
 }
 
-/* ---------------- BUSCA PRINCIPAL ---------------- */
+/* ----------------------------------------------------- */
+/* -------------------  BUSCA PRINCIPAL ----------------- */
+/* ----------------------------------------------------- */
 
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
     const publishedAfter = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
 
-    const url = 
+    const url =
       `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=%2E&publishedAfter=${publishedAfter}&maxResults=100&key=${API_KEY}`;
 
-    const r = await fetch(url);
-    const data = await r.json();
+    console.log("URL chamada:", url);
 
-    const canais = [...new Set(data.items?.map(v => v.snippet.channelId))];
+    let r;
+    try {
+        r = await fetch(url);
+        console.log("Resposta bruta:", r);
+    } catch (e) {
+        console.error("Erro no FETCH:", e);
+        pararAnimacaoBotao();
+        return;
+    }
+
+    let data;
+    try {
+        data = await r.json();
+        console.log("JSON retornado pela API:", data);
+    } catch (e) {
+        console.error("Erro ao converter JSON:", e);
+        pararAnimacaoBotao();
+        return;
+    }
+
+    if (!data.items) {
+        console.error("Nenhum item retornado. Erro da API:", data);
+        pararAnimacaoBotao();
+        return;
+    }
+
+    const canais = [...new Set(data.items.map(v => v.snippet.channelId))];
 
     const grupos = [];
     while (canais.length) grupos.push(canais.splice(0, 50));
@@ -253,21 +272,29 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ---------------- BUSCA EM MASSA ---------------- */
+/* ----------------------------------------------------- */
+/* -------------------- BUSCA EM MASSA ------------------ */
+/* ----------------------------------------------------- */
 
 async function buscarDadosDeVariosCanais(listaIds) {
     const ids = listaIds.join(",");
-    const url = 
+
+    const url =
       `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
 
     const r = await fetch(url);
     const data = await r.json();
+
+    console.log("Dados dos canais:", data);
+
     if (!data.items) return;
 
     data.items.forEach(processarCanal);
 }
 
-/* ---------------- PROCESSAR CANAL ---------------- */
+/* ----------------------------------------------------- */
+/* --------------------- PROCESSAR CANAL ---------------- */
+/* ----------------------------------------------------- */
 
 function processarCanal(c) {
     const nome = c.snippet.title;
@@ -301,7 +328,9 @@ function processarCanal(c) {
     );
 }
 
-/* ---------------- TABELA ---------------- */
+/* ----------------------------------------------------- */
+/* ------------------------- TABELA ---------------------- */
+/* ----------------------------------------------------- */
 
 function adicionarNaTabela(...vals) {
     const tbody = document.querySelector("#resultados tbody");
@@ -310,7 +339,9 @@ function adicionarNaTabela(...vals) {
     tbody.appendChild(tr);
 }
 
-/* ---------------- ORDENAÇÃO ---------------- */
+/* ----------------------------------------------------- */
+/* ----------------------- ORDENAÇÃO --------------------- */
+/* ----------------------------------------------------- */
 
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => ordenar(th));
@@ -357,5 +388,3 @@ function ordenar(th) {
 
 </body>
 </html>
-
-
