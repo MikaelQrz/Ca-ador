@@ -40,13 +40,7 @@
             font-weight: bold;
         }
 
-        ul.regras {
-            list-style: disc;
-            padding-left: 40px;
-            max-width: 450px;
-            margin: 0 auto 20px auto;
-            font-size: 15px;
-        }
+        /* 🔥 Removida a UL */
 
         button { 
             padding: 12px; 
@@ -112,10 +106,9 @@
         }
 
         th { cursor: pointer; }
-
         .coluna-ativa { background: #d6d6d6 !important; }
 
-        /* 🔥 Estilo das caixas novas */
+        /* 🔥 Filtros */
         .filtro-box {
             max-width: 600px;
             margin: 10px auto;
@@ -127,17 +120,18 @@
         .filtro-linha {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
         }
 
         .filtro-linha label {
             width: 260px;
-            text-align: left;
             font-weight: bold;
+            text-align: left;
         }
 
         .filtro-linha input {
-            flex: 1;
+            width: 240px; /* 🔥 AGORA TODAS AS CAIXAS TÊM O MESMO TAMANHO */
             padding: 8px;
             font-size: 15px;
             background: #efefef;
@@ -156,47 +150,39 @@
     <p class="descricao">
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
-
-    <ul class="regras">
-        <li>Busca vídeos dos últimos <b>14 dias</b></li>
-        <li>Analisa até <b>500 vídeos</b></li>
-        <li>Canal com <b>300 a 10.000 inscritos</b></li>
-        <li>Canal com <b>máx. 30 vídeos</b></li>
-        <li>Vídeos com <b>5000+ views</b></li>
-    </ul>
 </div>
 
-<!-- 🔥 NOVAS CAIXAS DE TEXTO -->
+<!-- 🔥 NOVAS CAIXAS DE FILTRO -->
 <div class="filtro-box">
 
     <div class="filtro-linha">
         <label>Buscar vídeos dos últimos:</label>
-        <input id="diasInput" type="number" placeholder="Ex: 14">
+        <input id="diasInput" type="number" placeholder="Ex: 14 dias">
     </div>
 
     <div class="filtro-linha">
         <label>Analisa até:</label>
-        <input id="limiteVideosInput" type="number" placeholder="Ex: 500">
+        <input id="limiteVideosInput" type="number" placeholder="Ex: 500 vídeos">
     </div>
 
     <div class="filtro-linha">
         <label>Busca canais com 300 a:</label>
-        <input id="maxInscritosInput" type="number" placeholder="Ex: 10000">
+        <input id="maxInscritosInput" type="number" placeholder="Ex: 10000 inscritos">
     </div>
 
     <div class="filtro-linha">
         <label>Busca canais com 1 a:</label>
-        <input id="maxVideosCanalInput" type="number" placeholder="Ex: 30">
+        <input id="maxVideosCanalInput" type="number" placeholder="Ex: 30 vídeos">
     </div>
 
     <div class="filtro-linha">
         <label>Busca vídeos com mais de:</label>
-        <input id="minViewsInput" type="number" placeholder="Ex: 5000">
+        <input id="minViewsInput" type="number" placeholder="Ex: 5000 views">
     </div>
 
 </div>
 
-<!-- 🔥 Caixa do termo de busca -->
+<!-- 🔥 Caixa do termo -->
 <div style="text-align:center; margin-top:10px;">
     <input id="termoBusca" 
            type="text" 
@@ -249,7 +235,7 @@ function pararAnimacaoBotao() {
 }
 
 /* ----------------------------------------------------- */
-/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
+/* --------------------- BUSCA -------------------------- */
 /* ----------------------------------------------------- */
 
 async function buscarVideos() {
@@ -304,7 +290,7 @@ async function buscarVideos() {
 }
 
 /* ----------------------------------------------------- */
-/* -------------------- BUSCA EM MASSA ------------------ */
+/* -------------------- BUSCA CANAIS -------------------- */
 /* ----------------------------------------------------- */
 
 async function buscarDadosDeVariosCanais(listaIds) {
@@ -322,7 +308,7 @@ async function buscarDadosDeVariosCanais(listaIds) {
 }
 
 /* ----------------------------------------------------- */
-/* --------------------- PROCESSAR CANAL ---------------- */
+/* ----------------------- PROCESSAR --------------------- */
 /* ----------------------------------------------------- */
 
 function processarCanal(c) {
@@ -381,7 +367,7 @@ function ordenar(th) {
     });
 
     th.classList.add("coluna-ativa");
-    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽`;
 
     linhas.sort((a, b) => {
         let v1 = a.children[col].innerText;
