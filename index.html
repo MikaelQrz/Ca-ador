@@ -7,7 +7,7 @@
     <style>
         body { 
             font-family: Arial; 
-            background: #e6e6e6;
+            background: #ffffff; /* fundo branco */
             color: #000; 
             padding: 0; 
             margin: 0;
@@ -27,20 +27,19 @@
             font-size: 42px;
             margin: 0;
 
-            /* sombra neon vinho */
             text-shadow: 
                 0 0 3px #5a001f,
                 0 0 6px #5a001f,
                 0 0 9px #5a001f;
         }
 
+        /* 🔥 Caixa removida — agora é transparente */
         .info-container {
             max-width: 900px;
             margin: 25px auto;
-            background: #4a4a4a;
-            padding: 25px;
-            border-radius: 10px;
-            color: #fff;
+            padding: 20px 0;
+            color: #000;
+            background: none !important;
         }
 
         p.descricao {
@@ -48,26 +47,29 @@
             text-align: center;
             margin-bottom: 18px;
             font-weight: bold;
-            color: #fff;
+            color: #000;
         }
 
+        /* 🔥 Alinhamento perfeito das caixas */
         ul.regras {
             list-style: none;
             padding-left: 0;
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto 20px auto;
             font-size: 15px;
-            color: #ddd;
+            color: #000;
         }
 
         ul.regras li {
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         ul.regras input {
-            margin-left: 10px;
             padding: 5px;
-            width: 110px;
+            width: 120px;
             font-size: 14px;
         }
 
@@ -136,7 +138,6 @@
         }
 
         th { cursor: pointer; }
-
         .coluna-ativa { background: #99c2ff !important; }
     </style>
 </head>
@@ -151,7 +152,7 @@
         Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
     </p>
 
-    <!-- 🔥 Agora cada item tem uma caixa editável -->
+    <!-- 🔥 Inputs agora alinhados -->
     <ul class="regras">
         <li>
             Busca vídeos dos últimos
@@ -170,7 +171,7 @@
         </li>
 
         <li>
-            Canal com máx. 
+            Canal com máx.
             <input id="maxVideosCanal" type="number" value="30"> vídeos
         </li>
 
@@ -211,6 +212,7 @@
     <tbody></tbody>
 </table>
 
+<!-- 🔥 JS permanece 100% idêntico -->
 <script>
 console.log("JS carregado!");
 
@@ -238,7 +240,6 @@ async function buscarVideos() {
     const termoDigitado = document.getElementById("termoBusca").value.trim();
     const termo = termoDigitado === "" ? "a" : termoDigitado;
 
-    // 🔥 valores configuráveis agora vêm dos inputs
     const diasBusca = Number(document.getElementById("diasBusca").value);
     const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
 
