@@ -40,14 +40,6 @@
             font-weight: bold;
         }
 
-        ul.regras {
-            list-style: disc;
-            padding-left: 40px;
-            max-width: 450px;
-            margin: 0 auto 20px auto;
-            font-size: 15px;
-        }
-
         button { 
             padding: 12px; 
             margin: 10px 20px; 
@@ -65,7 +57,9 @@
             gap: 10px;
         }
 
-        button.loading { background: #000 !important; }
+        button.loading {
+            background: #000 !important;
+        }
 
         .spinner {
             border: 3px solid #fff;
@@ -79,10 +73,7 @@
 
         button.loading .spinner { display: inline-block; }
 
-        @keyframes spin { 
-            from { transform: rotate(0deg); } 
-            to { transform: rotate(360deg); } 
-        }
+        @keyframes spin { from { rotate: 0deg; } to { rotate: 360deg; } }
 
         .progress-container {
             width: calc(100% - 40px);
@@ -117,6 +108,18 @@
         th { cursor: pointer; }
 
         .coluna-ativa { background: #d6d6d6 !important; }
+
+        .inputs { 
+            text-align:center; 
+            margin-top:15px;
+        }
+
+        .inputs input {
+            padding:10px;
+            margin:5px;
+            font-size:16px;
+            width:28%;
+        }
     </style>
 </head>
 <body>
@@ -127,24 +130,16 @@
 
 <div class="info-container">
     <p class="descricao">
-        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
+        Este sistema identifica canais novos e promissores analisando vídeos recentes.
     </p>
-
-    <ul class="regras">
-        <li>Busca vídeos dos últimos <b>14 dias</b></li>
-        <li>Analisa até <b>500 vídeos</b></li>
-        <li>Canal com <b>300 a 10.000 inscritos</b></li>
-        <li>Canal com <b>máx. 30 vídeos</b></li>
-        <li>Vídeos com <b>5000+ views</b></li>
-    </ul>
 </div>
 
-<!-- Caixa para digitar termo -->
-<div style="text-align:center; margin-top:10px;">
-    <input id="termoBusca" 
-           type="text" 
-           placeholder="Digite o termo da busca (vazio = 'a')"
-           style="width:70%; padding:10px; font-size:16px;">
+<!-- 🔥 Inputs -->
+<div class="inputs">
+    <input id="termoBusca" type="text" placeholder="Termo da busca (ex: estoico)">
+    <input id="diasBusca" type="number" placeholder="Dias atrás (ex: 14)" value="14">
+    <input id="viewsMin" type="number" placeholder="Views mínimos (ex: 5000)" value="5000">
+    <input id="maxVideos" type="number" placeholder="Máx. vídeos analisados (ex: 500)" value="500">
 </div>
 
 <button id="botao" onclick="buscarVideos()">
@@ -159,7 +154,7 @@
 <table id="resultados">
     <thead>
         <tr>
-            <th data-col="0">Canal (Handle)</th>
+            <th data-col="0">Canal (@handle)</th>
             <th data-col="1">Inscritos</th>
             <th data-col="2">Vídeos</th>
             <th data-col="3">Inscritos/Vídeo</th>
@@ -171,7 +166,6 @@
 </table>
 
 <script>
-console.log("JS carregado!");
 
 const API_KEY = "AIzaSyDKaw4wNK1lkm_7AJ3OR1cMO6D9XGTR3SU";
 let ordem = {};
@@ -182,40 +176,34 @@ function iniciarAnimacaoBotao() {
     progressBar.style.width = "0%";
 }
 
-function atualizarProgresso(p) {
-    progressBar.style.width = p + "%";
-}
+function atualizarProgresso(p) { progressBar.style.width = p + "%"; }
 
 function pararAnimacaoBotao() {
     botao.classList.remove("loading");
     setTimeout(() => progressContainer.style.display = "none", 600);
 }
 
-/* ----------------------------------------------------- */
-/* -----------------  BUSCA COM PAGINAÇÃO --------------- */
-/* ----------------------------------------------------- */
-
 async function buscarVideos() {
     iniciarAnimacaoBotao();
 
-    const termoDigitado = document.getElementById("termoBusca").value.trim();
-    const termo = termoDigitado === "" ? "a" : termoDigitado;
+    const termo = termoBusca.value.trim() === "" ? "a" : termoBusca.value.trim();
 
-    const publishedAfter = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    const dias = Number(diasBusca.value) || 14;
+    const viewsMin = Number(viewsMin.value) || 5000;
+    const MAX_VIDEOS = Number(maxVideos.value) || 500;
+
+    const publishedAfter = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
 
     let nextPageToken = "";
     let videos = [];
-    const MAX_VIDEOS = 500;
 
     while (videos.length < MAX_VIDEOS) {
-
         const url =
           `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${encodeURIComponent(termo)}` +
           `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
 
         const r = await fetch(url);
         const data = await r.json();
-
         if (!data.items) break;
 
         videos.push(...data.items);
@@ -227,15 +215,13 @@ async function buscarVideos() {
     videos = videos.slice(0, MAX_VIDEOS);
 
     const canais = [...new Set(videos.map(v => v.snippet.channelId))];
-
     const grupos = [];
     while (canais.length) grupos.push(canais.splice(0, 50));
 
-    let total = grupos.length;
-    let atual = 0;
+    let total = grupos.length, atual = 0;
 
     for (const g of grupos) {
-        await buscarDadosDeVariosCanais(g);
+        await buscarDadosDeVariosCanais(g, viewsMin);
         atual++;
         atualizarProgresso(Math.round((atual / total) * 100));
     }
@@ -244,36 +230,28 @@ async function buscarVideos() {
     pararAnimacaoBotao();
 }
 
-/* ----------------------------------------------------- */
-/* -------------------- BUSCA EM MASSA ------------------ */
-/* ----------------------------------------------------- */
-
-async function buscarDadosDeVariosCanais(listaIds) {
-    const ids = listaIds.join(",");
-
+async function buscarDadosDeVariosCanais(idsLista, viewsMin) {
+    const ids = idsLista.join(",");
     const url =
       `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
 
     const r = await fetch(url);
     const data = await r.json();
-
     if (!data.items) return;
 
-    data.items.forEach(processarCanal);
+    data.items.forEach(c => processarCanal(c, viewsMin));
 }
 
-/* ----------------------------------------------------- */
-/* --------------------- PROCESSAR CANAL ---------------- */
-/* ----------------------------------------------------- */
+function processarCanal(c, viewsMin) {
 
-function processarCanal(c) {
-    const handle = c.snippet.customUrl ? c.snippet.customUrl : "Sem handle";
+    const handle = c.snippet.customUrl ? c.snippet.customUrl : "@" + c.snippet.title.replace(/\s+/g, "").toLowerCase();
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
     const videos = Number(c.statistics.videoCount || 0);
 
     if (inscritos < 300 || inscritos > 10000) return;
     if (videos < 1 || videos > 30) return;
+    if (views < viewsMin) return;
 
     adicionarNaTabela(
         handle,
@@ -285,19 +263,11 @@ function processarCanal(c) {
     );
 }
 
-/* ----------------------------------------------------- */
-/* ------------------------- TABELA ---------------------- */
-/* ----------------------------------------------------- */
-
 function adicionarNaTabela(...vals) {
     const tr = document.createElement("tr");
     tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
     document.querySelector("#resultados tbody").appendChild(tr);
 }
-
-/* ----------------------------------------------------- */
-/* ----------------------- ORDENAÇÃO --------------------- */
-/* ----------------------------------------------------- */
 
 document.querySelectorAll("th").forEach(th => {
     th.addEventListener("click", () => ordenar(th));
@@ -325,18 +295,15 @@ function ordenar(th) {
         const n1 = parseFloat(v1);
         const n2 = parseFloat(v2);
 
-        if (!isNaN(n1) && !isNaN(n2)) {
-            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
-        }
+        if (!isNaN(n1) && !isNaN(n2)) return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
 
-        return ordem[col] === "asc"
-            ? v1.localeCompare(v2)
-            : v2.localeCompare(v1);
+        return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
     });
 
     tbody.innerHTML = "";
     linhas.forEach(l => tbody.appendChild(l));
 }
+
 </script>
 
 </body>
