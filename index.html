@@ -58,10 +58,7 @@
             align-items: center;
         }
 
-        ul.regras span {
-            flex: 1;
-            text-align: left;
-        }
+        ul.regras span { flex: 1; text-align: left; }
 
         ul.regras input {
             padding: 5px;
@@ -71,8 +68,8 @@
 
         button { 
             padding: 12px; 
-            margin: 10px 20px; 
-            width: calc(100% - 40px); 
+            margin: 10px auto; 
+            width: 260px; 
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
@@ -136,13 +133,13 @@
         th { cursor: pointer; }
         .coluna-ativa { background: #cccccc !important; }
 
-        /* 🔥 MENSAGEM DE STATUS */
         #statusApi {
             text-align: center;
             font-weight: bold;
             margin-top: 5px;
             display: none;
         }
+
     </style>
 </head>
 <body>
@@ -165,14 +162,14 @@
     </ul>
 </div>
 
-<!-- 🔥 CAIXA PARA INSERIR API KEY + BOTÃO DE VERIFICAÇÃO -->
+<!-- 🔥 API KEY CENTRALIZADA -->
 <div style="text-align:center; margin-top:10px;">
     <input id="inputApiKey"
            type="text"
            placeholder="Insira sua API Key aqui"
            style="width:70%; padding:10px; font-size:16px;">
 
-    <button onclick="verificarApiKey()" style="width:200px; margin-top:5px;">
+    <button onclick="verificarApiKey()" style="margin-top:8px;">
         Verificar API
     </button>
 
@@ -186,9 +183,15 @@
            style="width:70%; padding:10px; font-size:16px;">
 </div>
 
+<!-- 🔥 BOTÃO CAÇAR -->
 <button id="botao" onclick="buscarVideos()">
     CAÇAR
     <div class="spinner"></div>
+</button>
+
+<!-- 🔥 BOTÃO RESET 👇 ADICIONADO -->
+<button onclick="resetTabela()" style="background:#ff4444; margin-top:0;">
+    LIMPAR RESULTADOS
 </button>
 
 <div class="progress-container" id="progressContainer">
@@ -212,9 +215,7 @@
 <script>
 console.log("JS carregado!");
 
-// 🔥 AGORA API_KEY É CARREGADA DO INPUT
 let API_KEY = "";
-
 let ordem = {};
 
 function verificarApiKey() {
@@ -236,12 +237,16 @@ function verificarApiKey() {
                 status.style.color = "red";
                 status.innerText = "API Key inválida ou desativada.";
             } else {
-                API_KEY = key; // ✔️ Só ativa se estiver válida
+                API_KEY = key;
                 status.style.display = "block";
                 status.style.color = "green";
                 status.innerText = "API Key ativada!";
             }
         });
+}
+
+function resetTabela() {
+    document.querySelector("#resultados tbody").innerHTML = "";
 }
 
 function iniciarAnimacaoBotao() {
@@ -271,7 +276,6 @@ async function buscarVideos() {
 
     const diasBusca = Number(document.getElementById("diasBusca").value);
     const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
-
     const minInscritos = 1;
     const maxInscritos = Number(document.getElementById("maxInscritos").value);
     const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
@@ -303,7 +307,6 @@ async function buscarVideos() {
     videos = videos.slice(0, MAX_VIDEOS);
 
     const canais = [...new Set(videos.map(v => v.snippet.channelId))];
-
     const grupos = [];
     while (canais.length) grupos.push(canais.splice(0, 50));
 
@@ -330,7 +333,6 @@ async function buscarDadosDeVariosCanais(listaIds) {
     const data = await r.json();
 
     if (!data.items) return;
-
     data.items.forEach(processarCanal);
 }
 
@@ -383,10 +385,13 @@ function ordenar(th) {
     linhas.sort((a, b) => {
         const v1 = a.children[col].innerText;
         const v2 = b.children[col].innerText;
+
         const n1 = parseFloat(v1);
         const n2 = parseFloat(v2);
 
-        if (!isNaN(n1) && !isNaN(n2)) return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
+        if (!isNaN(n1) && !isNaN(n2))
+            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
+
         return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
     });
 
