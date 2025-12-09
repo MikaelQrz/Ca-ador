@@ -1,1 +1,520 @@
-teste
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CAÇADOR DE CANAIS</title>
+
+    <style>
+        body { 
+            font-family: Arial; 
+            background: #ffffff;
+            color: #000; 
+            padding: 0; 
+            margin: 0;
+        }
+
+        .titulo-container {
+            width: 100%;
+            background: #000;
+            padding: 25px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 { 
+            color: #fff; 
+            font-size: 42px;
+            margin: 0;
+            text-shadow: none;
+        }
+
+        .info-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 0;
+            color: #000;
+        }
+
+        p.descricao {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        ul.regras {
+            list-style: none;
+            padding-left: 0;
+            max-width: 500px;
+            margin: 0 auto 5px auto;
+            font-size: 15px;
+        }
+
+        ul.regras li {
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        ul.regras span { flex: 1; text-align: left; }
+
+        ul.regras input {
+            padding: 5px;
+            width: 130px;
+            font-size: 14px;
+        }
+
+        button { 
+            padding: 12px; 
+            margin: 10px auto; 
+            width: 260px; 
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #00c851; 
+            color: #fff;
+            border: 2px solid #000;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button.loading { background: #000 !important; }
+
+        .spinner {
+            border: 3px solid #fff;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        button.loading .spinner { display: inline-block; }
+
+        @keyframes spin { from { rotate: 0deg; } to { rotate: 360deg; } }
+
+        .progress-container {
+            width: calc(100% - 40px);
+            margin: 15px auto;
+            height: 14px;
+            background: #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #00cc44, #009933);
+            transition: width 0.25s ease;
+        }
+
+        table { 
+            width: calc(100% - 40px); 
+            margin: 20px auto; 
+            border-collapse: collapse;
+        }
+
+        th, td { 
+            border: 1px solid #ccc; 
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            background: #e6e6e6;
+        }
+
+        th { cursor: pointer; }
+        .coluna-ativa { background: #cccccc !important; }
+
+        #statusApi {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="titulo-container">
+    <h1>CAÇADOR DE CANAIS 🏆</h1>
+</div>
+
+<div class="info-container">
+    <p class="descricao">
+        Este sistema identifica canais novos e promissores analisando vídeos recentes postados no YouTube.
+    </p>
+
+    <ul class="regras">
+        <li><span>Busca vídeos dos últimos ___ [dias]:</span><input id="diasBusca" type="number" value="14"></li>
+        <li><span>Quantidade de videos analisados:</span><input id="maxVideos" type="number" value="500"></li>
+        <li><span>Busca canais com 1 a ___ [inscritos]:</span><input id="maxInscritos" type="number" value="10000"></li>
+        <li><span>Máximo de vídeos do canal:</span><input id="maxVideosCanal" type="number" value="30"></li>
+        <li><span>Mínimo de views do vídeo:</span><input id="minViews" type="number" value="5000"></li>
+
+        <!-- 🔥 APENAS ACRESCENTADO -->
+        <li style="justify-content:left; gap:10px;">
+            <input type="checkbox" id="filtroShorts">
+            <span>Excluir canais que postaram Shorts</span>
+        </li>
+    </ul>
+</div>
+
+<!-- API KEY -->
+<div style="text-align:center; margin-top:10px;">
+    <input id="inputApiKey"
+           type="text"
+           placeholder="Insira sua API Key aqui"
+           style="width:70%; padding:10px; font-size:16px;">
+
+    <button onclick="verificarApiKey()" style="margin-top:8px;">
+        Verificar API
+    </button>
+
+    <div id="statusApi"></div>
+</div>
+
+<div style="text-align:center; margin-top:0;">
+    <input id="termoBusca" 
+           type="text" 
+           placeholder="Digite o termo da busca (deixe vazio para usar 'a')"
+           style="width:70%; padding:10px; font-size:16px;">
+</div>
+
+<!-- BOTÃO -->
+<button id="botao" onclick="buscarVideos()">
+    CAÇAR
+    <div class="spinner"></div>
+</button>
+
+<button onclick="resetTabela()" style="background:#ff4444; margin-top:0;">
+    LIMPAR RESULTADOS
+</button>
+
+<div class="progress-container" id="progressContainer">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<table id="resultados">
+    <thead>
+        <tr>
+            <th data-col="0">Canal</th>
+            <th data-col="1">Inscritos</th>
+            <th data-col="2">Vídeos</th>
+            <th data-col="3">Inscritos/Vídeo</th>
+            <th data-col="4">Views/Inscrito</th>
+            <th data-col="5">Views/Vídeo</th>
+
+            <!-- 🔥 NOVA COLUNA ACRESCENTADA -->
+            <th data-col="6">Novos inscritos (30 dias)</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+console.log("JS carregado!");
+
+let API_KEY = "";
+let ordem = {};
+
+function verificarApiKey() {
+    const key = document.getElementById("inputApiKey").value.trim();
+    const status = document.getElementById("statusApi");
+
+    if (!key) {
+        status.style.display = "block";
+        status.style.color = "red";
+        status.innerText = "Digite uma API Key.";
+        return;
+    }
+
+    fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&key=${key}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                status.style.display = "block";
+                status.style.color = "red";
+                status.innerText = "API Key inválida ou desativada.";
+            } else {
+                API_KEY = key;
+                status.style.display = "block";
+                status.style.color = "green";
+                status.innerText = "API Key ativada!";
+            }
+        });
+}
+
+function resetTabela() {
+    document.querySelector("#resultados tbody").innerHTML = "";
+}
+
+function iniciarAnimacaoBotao() {
+    botao.classList.add("loading");
+    progressContainer.style.display = "block";
+    progressBar.style.width = "0%";
+}
+
+function atualizarProgresso(p) { progressBar.style.width = p + "%"; }
+
+function pararAnimacaoBotao() {
+    botao.classList.remove("loading");
+    setTimeout(() => progressContainer.style.display = "none", 600);
+}
+
+async function buscarVideos() {
+
+    if (!API_KEY) {
+        alert("Você precisa inserir e validar sua API Key antes de usar a ferramenta.");
+        return;
+    }
+
+    iniciarAnimacaoBotao();
+
+    const termoDigitado = document.getElementById("termoBusca").value.trim();
+    const termo = termoDigitado === "" ? "a" : termoDigitado;
+
+    const diasBusca = Number(document.getElementById("diasBusca").value);
+    const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
+    const minInscritos = 1;
+    const maxInscritos = Number(document.getElementById("maxInscritos").value);
+    const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
+    const minViews = Number(document.getElementById("minViews").value);
+
+    window.FILTRO_SHORTS = document.getElementById("filtroShorts").checked;
+
+    window.FILTROS = { minInscritos, maxInscritos, maxVideosCanal, minViews };
+
+    const publishedAfter = new Date(Date.now() - diasBusca * 86400000).toISOString();
+
+    let nextPageToken = "";
+    let videos = [];
+
+    while (videos.length < MAX_VIDEOS) {
+
+        const url =
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&q=${encodeURIComponent(termo)}` +
+          `&publishedAfter=${publishedAfter}&maxResults=50&pageToken=${nextPageToken}&key=${API_KEY}`;
+
+        const r = await fetch(url);
+        const data = await r.json();
+
+        if (!data.items) break;
+        videos.push(...data.items);
+
+        nextPageToken = data.nextPageToken || "";
+        if (!nextPageToken) break;
+    }
+
+    videos = videos.slice(0, MAX_VIDEOS);
+
+    const canais = [...new Set(videos.map(v => v.snippet.channelId))];
+    const grupos = [];
+    while (canais.length) grupos.push(canais.splice(0, 50));
+
+    let total = grupos.length;
+    let atual = 0;
+
+    for (const g of grupos) {
+        await buscarDadosDeVariosCanais(g);
+        atual++;
+        atualizarProgresso(Math.round((atual / total) * 100));
+    }
+
+    atualizarProgresso(100);
+    pararAnimacaoBotao();
+}
+
+async function buscarDadosDeVariosCanais(listaIds) {
+    const ids = listaIds.join(",");
+
+    const url =
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if (!data.items) return;
+
+    for (const canal of data.items) {
+        await processarCanal(canal);
+    }
+}
+
+/* --------------------------------------------------------------- */
+/* 🔥 FUNÇÕES PARA FILTRAR SHORTS – APENAS ACRESCENTADAS */
+/* --------------------------------------------------------------- */
+
+function duracaoISOparaSegundos(iso) {
+    if (!iso) return 9999;
+    const match = iso.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+    if (!match) return 9999;
+    let h = parseInt(match[1]) || 0;
+    let m = parseInt(match[2]) || 0;
+    let s = parseInt(match[3]) || 0;
+    return h * 3600 + m * 60 + s;
+}
+
+async function canalTemShorts(channelId) {
+
+    try {
+        let r = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=20&key=${API_KEY}`
+        );
+        let data = await r.json();
+
+        if (!data.items) return false;
+
+        let ids = data.items.map(v => v.id.videoId).join(",");
+
+        let r2 = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${API_KEY}`
+        );
+        let detalhes = await r2.json();
+
+        if (!detalhes.items || !Array.isArray(detalhes.items)) {
+            console.warn("Não foi possível obter detalhes de vídeos:", detalhes);
+            return false;
+        }
+
+        for (const vid of detalhes.items) {
+
+            let duracao = duracaoISOparaSegundos(vid.contentDetails.duration);
+
+            if (duracao < 60) return true;
+
+            let titulo = vid.snippet.title.toLowerCase();
+            let desc = (vid.snippet.description || "").toLowerCase();
+
+            if (titulo.includes("short") || desc.includes("short")) return true;
+        }
+
+    } catch (e) {
+        console.warn("Erro ao verificar shorts:", e);
+        return false;
+    }
+
+    return false;
+}
+
+/* --------------------------------------------------------------- */
+/* --------------------------------------------------------------- */
+/* 🔥 FUNÇÃO NOVA: Estimar inscritos ganhos nos últimos 30 dias    */
+/* --------------------------------------------------------------- */
+async function inscritosUltimos30Dias(channelId) {
+
+    const publishedAfter = new Date(Date.now() - 30 * 86400000).toISOString();
+
+    // busca vídeos dos últimos 30 dias
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&channelId=${channelId}&publishedAfter=${publishedAfter}&maxResults=50&key=${API_KEY}`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if (!data.items || data.items.length === 0) return 0;
+
+    const videoIds = data.items.map(v => v.id.videoId).join(",");
+
+    const r2 = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${API_KEY}`
+    );
+
+    const v = await r2.json();
+    if (!v.items) return 0;
+
+    let totalViews = 0;
+    v.items.forEach(item => {
+        totalViews += Number(item.statistics.viewCount || 0);
+    });
+
+    // estimativa realista para canais pequenos: 1 inscrito a cada ~40 views
+    const novosInscritos = Math.round(totalViews / 40);
+
+    return novosInscritos;
+}
+
+async function processarCanal(c) {
+
+    if (window.FILTRO_SHORTS) {
+        let tem = await canalTemShorts(c.id);
+        if (tem) return;
+    }
+
+    const nome = c.snippet.title;
+    const inscritos = Number(c.statistics.subscriberCount || 0);
+    const views = Number(c.statistics.viewCount || 0);
+    const videos = Number(c.statistics.videoCount || 0);
+
+    const { minInscritos, maxInscritos, maxVideosCanal } = window.FILTROS;
+
+    if (inscritos < minInscritos || inscritos > maxInscritos) return;
+    if (videos < 1 || videos > maxVideosCanal) return;
+
+    const novos30 = await inscritosUltimos30Dias(c.id);
+
+adicionarNaTabela(
+        nome,
+        inscritos,
+        videos,
+        (inscritos / videos).toFixed(1),
+        (views / inscritos).toFixed(2),
+        (views / videos).toFixed(1),
+
+        /* 🔥 NOVA COLUNA INSERIDA */
+        novos30
+);
+}
+
+function adicionarNaTabela(...vals) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = vals.map(v => `<td>${v}</td>`).join("");
+    document.querySelector("#resultados tbody").appendChild(tr);
+}
+
+document.querySelectorAll("th").forEach(th => {
+    th.addEventListener("click", () => ordenar(th));
+});
+
+function ordenar(th) {
+    const col = Number(th.dataset.col);
+    const tbody = document.querySelector("#resultados tbody");
+    const linhas = Array.from(tbody.querySelectorAll("tr"));
+
+    ordem[col] = ordem[col] === "asc" ? "desc" : "asc";
+
+    document.querySelectorAll("th").forEach(h => {
+        h.innerHTML = h.innerHTML.replace(" 🔼", "").replace(" 🔽", "");
+        h.classList.remove("coluna-ativa");
+    });
+
+    th.classList.add("coluna-ativa");
+    th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
+
+    linhas.sort((a, b) => {
+        const v1 = a.children[col].innerText;
+        const v2 = b.children[col].innerText;
+
+        const n1 = parseFloat(v1);
+        const n2 = parseFloat(v2);
+
+        if (!isNaN(n1) && !isNaN(n2))
+            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
+
+        return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
+    });
+
+    tbody.innerHTML = "";
+    linhas.forEach(l => tbody.appendChild(l));
+}
+</script>
+
+</body>
+</html>
