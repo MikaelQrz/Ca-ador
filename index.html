@@ -139,7 +139,6 @@
             margin-top: 5px;
             display: none;
         }
-
     </style>
 </head>
 <body>
@@ -159,10 +158,16 @@
         <li><span>Busca canais com 1 a ___ [inscritos]:</span><input id="maxInscritos" type="number" value="10000"></li>
         <li><span>Máximo de vídeos do canal:</span><input id="maxVideosCanal" type="number" value="30"></li>
         <li><span>Mínimo de views do vídeo:</span><input id="minViews" type="number" value="5000"></li>
+
+        <!-- 🔥 ADICIONADO: checkbox para filtrar canais com Shorts -->
+        <li style="justify-content:left; gap:10px;">
+            <input type="checkbox" id="filtroShorts">
+            <span>Excluir canais que postaram Shorts</span>
+        </li>
     </ul>
 </div>
 
-<!-- 🔥 API KEY CENTRALIZADA -->
+<!-- API KEY -->
 <div style="text-align:center; margin-top:10px;">
     <input id="inputApiKey"
            type="text"
@@ -183,13 +188,11 @@
            style="width:70%; padding:10px; font-size:16px;">
 </div>
 
-<!-- 🔥 BOTÃO CAÇAR -->
 <button id="botao" onclick="buscarVideos()">
     CAÇAR
     <div class="spinner"></div>
 </button>
 
-<!-- 🔥 BOTÃO RESET 👇 ADICIONADO -->
 <button onclick="resetTabela()" style="background:#ff4444; margin-top:0;">
     LIMPAR RESULTADOS
 </button>
@@ -281,6 +284,9 @@ async function buscarVideos() {
     const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
     const minViews = Number(document.getElementById("minViews").value);
 
+    // filtro shorts ativado?
+    window.FILTRO_SHORTS = document.getElementById("filtroShorts").checked;
+
     window.FILTROS = { minInscritos, maxInscritos, maxVideosCanal, minViews };
 
     const publishedAfter = new Date(Date.now() - diasBusca * 86400000).toISOString();
@@ -333,10 +339,60 @@ async function buscarDadosDeVariosCanais(listaIds) {
     const data = await r.json();
 
     if (!data.items) return;
-    data.items.forEach(processarCanal);
+    for (const canal of data.items) {
+        await processarCanal(canal);
+    }
 }
 
-function processarCanal(c) {
+// ------ 🔥 ADICIONADO: converter duração ISO para segundos ------
+function duracaoISOparaSegundos(iso) {
+    let match = iso.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+    let h = parseInt(match[1]) || 0;
+    let m = parseInt(match[2]) || 0;
+    let s = parseInt(match[3]) || 0;
+    return h * 3600 + m * 60 + s;
+}
+
+// ------ 🔥 ADICIONADO: verificar se canal possui Shorts ------
+async function canalTemShorts(channelId) {
+
+    // busca últimos 20 vídeos
+    let r = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=20&key=${API_KEY}`
+    );
+    let data = await r.json();
+    if (!data.items) return false;
+
+    let ids = data.items.map(v => v.id.videoId).join(",");
+
+    let r2 = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${ids}&key=${API_KEY}`
+    );
+    let detalhes = await r2.json();
+
+    for (const vid of detalhes.items) {
+
+        let dur = duracaoISOparaSegundos(vid.contentDetails.duration);
+
+        if (dur < 60) return true;
+
+        let titulo = vid.snippet.title.toLowerCase();
+        let desc = (vid.snippet.description || "").toLowerCase();
+
+        if (titulo.includes("short") || desc.includes("short")) return true;
+    }
+
+    return false;
+}
+
+async function processarCanal(c) {
+
+    // 🔥 Se filtro shorts estiver ativado, checar
+    if (window.FILTRO_SHORTS) {
+        let temShort = await canalTemShorts(c.id);
+        if (temShort) return; // ignora canal
+    }
+
     const nome = c.snippet.title;
     const inscritos = Number(c.statistics.subscriberCount || 0);
     const views = Number(c.statistics.viewCount || 0);
