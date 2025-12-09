@@ -189,7 +189,7 @@
     <div class="spinner"></div>
 </button>
 
-<!-- 🔥 BOTÃO RESET 👇 ADICIONADO -->
+<!-- 🔥 RESET -->
 <button onclick="resetTabela()" style="background:#ff4444; margin-top:0;">
     LIMPAR RESULTADOS
 </button>
@@ -273,6 +273,7 @@ async function buscarVideos() {
 
     const termoDigitado = document.getElementById("termoBusca").value.trim();
     const termo = termoDigitado === "" ? "a" : termoDigitado;
+    const termoLower = termo.toLowerCase(); // 🔥 utilizado no filtro
 
     const diasBusca = Number(document.getElementById("diasBusca").value);
     const MAX_VIDEOS = Number(document.getElementById("maxVideos").value);
@@ -298,7 +299,13 @@ async function buscarVideos() {
         const data = await r.json();
 
         if (!data.items) break;
-        videos.push(...data.items);
+
+        // 🔥 FILTRO: termo deve estar no TÍTULO
+        const filtrados = data.items.filter(v =>
+            v.snippet.title.toLowerCase().includes(termoLower)
+        );
+
+        videos.push(...filtrados);
 
         nextPageToken = data.nextPageToken || "";
         if (!nextPageToken) break;
