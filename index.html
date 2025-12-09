@@ -26,8 +26,6 @@
             color: #fff; 
             font-size: 42px;
             margin: 0;
-
-            /* ❌ sombra removida */
             text-shadow: none;
         }
 
@@ -45,17 +43,16 @@
             font-weight: bold;
         }
 
-        /* 🔥 Menos espaço entre itens */
         ul.regras {
             list-style: none;
             padding-left: 0;
             max-width: 500px;
-            margin: 0 auto 5px auto; /* antes era 20px */
+            margin: 0 auto 5px auto;
             font-size: 15px;
         }
 
         ul.regras li {
-            margin-bottom: 5px; /* antes 18px */
+            margin-bottom: 5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -79,11 +76,8 @@
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-
-            /* ✔ BOTÃO VERDE VIVO */
             background: #00c851; 
             color: #fff;
-
             border: 2px solid #000;
             border-radius: 6px;
             display: flex;
@@ -92,9 +86,7 @@
             gap: 10px;
         }
 
-        button.loading { 
-            background: #000 !important;
-        }
+        button.loading { background: #000 !important; }
 
         .spinner {
             border: 3px solid #fff;
@@ -138,13 +130,19 @@
             padding: 8px;
             text-align: center;
             font-weight: bold;
-
-            /* ✔ CINZA CLARO */
             background: #e6e6e6;
         }
 
         th { cursor: pointer; }
         .coluna-ativa { background: #cccccc !important; }
+
+        /* 🔥 MENSAGEM DE STATUS */
+        #statusApi {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -159,33 +157,26 @@
     </p>
 
     <ul class="regras">
-
-        <li>
-            <span>Busca vídeos dos últimos ___ [dias]:</span>
-            <input id="diasBusca" type="number" value="14">
-        </li>
-
-        <li>
-            <span>Quantidade de videos analisados:</span>
-            <input id="maxVideos" type="number" value="500">
-        </li>
-
-        <li>
-            <span>Busca canais com 1 a ___ [inscritos]:</span>
-            <input id="maxInscritos" type="number" value="10000">
-        </li>
-
-        <li>
-            <span>Máximo de vídeos do canal:</span>
-            <input id="maxVideosCanal" type="number" value="30">
-        </li>
-
-        <li>
-            <span>Mínimo de views do vídeo:</span>
-            <input id="minViews" type="number" value="5000">
-        </li>
-
+        <li><span>Busca vídeos dos últimos ___ [dias]:</span><input id="diasBusca" type="number" value="14"></li>
+        <li><span>Quantidade de videos analisados:</span><input id="maxVideos" type="number" value="500"></li>
+        <li><span>Busca canais com 1 a ___ [inscritos]:</span><input id="maxInscritos" type="number" value="10000"></li>
+        <li><span>Máximo de vídeos do canal:</span><input id="maxVideosCanal" type="number" value="30"></li>
+        <li><span>Mínimo de views do vídeo:</span><input id="minViews" type="number" value="5000"></li>
     </ul>
+</div>
+
+<!-- 🔥 CAIXA PARA INSERIR API KEY + BOTÃO DE VERIFICAÇÃO -->
+<div style="text-align:center; margin-top:10px;">
+    <input id="inputApiKey"
+           type="text"
+           placeholder="Insira sua API Key aqui"
+           style="width:70%; padding:10px; font-size:16px;">
+
+    <button onclick="verificarApiKey()" style="width:200px; margin-top:5px;">
+        Verificar API
+    </button>
+
+    <div id="statusApi"></div>
 </div>
 
 <div style="text-align:center; margin-top:0;">
@@ -221,8 +212,37 @@
 <script>
 console.log("JS carregado!");
 
-const API_KEY = "SUA KEY AQUI";
+// 🔥 AGORA API_KEY É CARREGADA DO INPUT
+let API_KEY = "";
+
 let ordem = {};
+
+function verificarApiKey() {
+    const key = document.getElementById("inputApiKey").value.trim();
+    const status = document.getElementById("statusApi");
+
+    if (!key) {
+        status.style.display = "block";
+        status.style.color = "red";
+        status.innerText = "Digite uma API Key.";
+        return;
+    }
+
+    fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&key=${key}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                status.style.display = "block";
+                status.style.color = "red";
+                status.innerText = "API Key inválida ou desativada.";
+            } else {
+                API_KEY = key; // ✔️ Só ativa se estiver válida
+                status.style.display = "block";
+                status.style.color = "green";
+                status.innerText = "API Key ativada!";
+            }
+        });
+}
 
 function iniciarAnimacaoBotao() {
     botao.classList.add("loading");
@@ -230,9 +250,7 @@ function iniciarAnimacaoBotao() {
     progressBar.style.width = "0%";
 }
 
-function atualizarProgresso(p) {
-    progressBar.style.width = p + "%";
-}
+function atualizarProgresso(p) { progressBar.style.width = p + "%"; }
 
 function pararAnimacaoBotao() {
     botao.classList.remove("loading");
@@ -240,6 +258,12 @@ function pararAnimacaoBotao() {
 }
 
 async function buscarVideos() {
+
+    if (!API_KEY) {
+        alert("Você precisa inserir e validar sua API Key antes de usar a ferramenta.");
+        return;
+    }
+
     iniciarAnimacaoBotao();
 
     const termoDigitado = document.getElementById("termoBusca").value.trim();
@@ -250,13 +274,12 @@ async function buscarVideos() {
 
     const minInscritos = 1;
     const maxInscritos = Number(document.getElementById("maxInscritos").value);
-
     const maxVideosCanal = Number(document.getElementById("maxVideosCanal").value);
     const minViews = Number(document.getElementById("minViews").value);
 
     window.FILTROS = { minInscritos, maxInscritos, maxVideosCanal, minViews };
 
-    const publishedAfter = new Date(Date.now() - diasBusca * 24 * 60 * 60 * 1000).toISOString();
+    const publishedAfter = new Date(Date.now() - diasBusca * 86400000).toISOString();
 
     let nextPageToken = "";
     let videos = [];
@@ -271,7 +294,6 @@ async function buscarVideos() {
         const data = await r.json();
 
         if (!data.items) break;
-
         videos.push(...data.items);
 
         nextPageToken = data.nextPageToken || "";
@@ -359,15 +381,12 @@ function ordenar(th) {
     th.innerHTML += ordem[col] === "asc" ? " 🔼" : " 🔽";
 
     linhas.sort((a, b) => {
-        let v1 = a.children[col].innerText;
-        let v2 = b.children[col].innerText;
-
+        const v1 = a.children[col].innerText;
+        const v2 = b.children[col].innerText;
         const n1 = parseFloat(v1);
         const n2 = parseFloat(v2);
 
-        if (!isNaN(n1) && !isNaN(n2))
-            return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
-
+        if (!isNaN(n1) && !isNaN(n2)) return ordem[col] === "asc" ? n1 - n2 : n2 - n1;
         return ordem[col] === "asc" ? v1.localeCompare(v2) : v2.localeCompare(v1);
     });
 
@@ -378,9 +397,3 @@ function ordenar(th) {
 
 </body>
 </html>
-
-
-
-
-
-
