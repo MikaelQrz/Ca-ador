@@ -200,13 +200,13 @@
 </div>
 
 <div id="diagnostico" style="max-width:500px; margin:15px auto; padding:12px; border:1px solid #ccc; background:#f5f5f5; font-size:14px; line-height:1.7; display:none;">
-    <strong>DIAGNÓSTICO — CANAIS ELIMINADOS</strong><br>
-    Por período da busca: <span id="diagPeriodo">0</span><br>
-    Por limite de vídeos vasculhados: <span id="diagLimiteVasculhados">0</span><br>
-    Por inscritos: <span id="diagInscritos">0</span><br>
-    Por máximo de vídeos do canal: <span id="diagMaxVideosCanal">0</span><br>
-    Por views mínimas: <span id="diagViews">0</span><br>
-    Por duração mínima: <span id="diagDuracao">0</span>
+    <strong>DIAGNÓSTICO — CANAIS</strong><br>
+    Canais únicos encontrados: <span id="diagCanaisUnicos">0</span><br>
+    Eliminados por duração mínima: <span id="diagDuracao">0</span><br>
+    Eliminados por views mínimas: <span id="diagViews">0</span><br>
+    Eliminados por inscritos: <span id="diagInscritos">0</span><br>
+    Eliminados por máximo de vídeos do canal: <span id="diagMaxVideosCanal">0</span><br>
+    Canais aprovados: <span id="diagAprovados">0</span>
 </div>
 
 <table id="resultados">
@@ -283,16 +283,12 @@ async function buscarVideos() {
     iniciarAnimacaoBotao();
 
     window.DIAGNOSTICO = {
-        eliminadosPeriodo: 0,
-        eliminadosLimiteVasculhados: 0,
+        canaisUnicos: 0,
+        eliminadosDuracao: 0,
+        eliminadosViews: 0,
         eliminadosInscritos: 0,
         eliminadosMaxVideosCanal: 0,
-        eliminadosViews: 0,
-        eliminadosDuracao: 0
-    };
-    window.DIAGNOSTICO_CANAIS = {
-        duracao: new Set(),
-        views: new Set()
+        aprovados: 0
     };
     document.getElementById("diagnostico").style.display = "block";
     atualizarDiagnostico();
@@ -310,18 +306,14 @@ async function buscarVideos() {
         const minViews = Number(document.getElementById("minViews").value);
         const minDuracao = Number(document.getElementById("minDuracao").value);
 
-        window.FILTROS = { minInscritos, maxInscritos, maxVideosCanal, minViews, minDuracao };
-
         const publishedAfter = new Date(Date.now() - diasBusca * 86400000).toISOString();
 
         let nextPageToken = "";
         let videosVasculhados = 0;
-        let videosValidos = [];
+        let videos = [];
 
-        // Vasculha NO MÁXIMO a quantidade informada pelo usuário.
-        // Ex.: 500 = no máximo 500 resultados retornados pelo search.list.
+        // Primeiro: vasculha no máximo X vídeos.
         while (videosVasculhados < MAX_VIDEOS) {
-
             const restantes = MAX_VIDEOS - videosVasculhados;
             const maxResults = Math.min(50, restantes);
 
@@ -332,66 +324,64 @@ async function buscarVideos() {
             const r = await fetch(url);
             const data = await r.json();
 
-            if (data.error) {
-                throw new Error(data.error.message || "Erro na busca da API do YouTube.");
-            }
-
+            if (data.error) throw new Error(data.error.message || "Erro na busca da API do YouTube.");
             if (!data.items || data.items.length === 0) break;
 
-            // Conta todos os resultados realmente vasculhados, antes dos filtros.
             videosVasculhados += data.items.length;
 
-            // Mantém a regra original: o termo precisa aparecer no título.
             const candidatos = data.items.filter(v =>
+                v.id && v.id.videoId &&
                 v.snippet &&
+                v.snippet.channelId &&
                 typeof v.snippet.title === "string" &&
                 v.snippet.title.toLowerCase().includes(termoLower)
             );
 
-            // Verifica duração e views dos candidatos.
-            const aprovados = await filtrarVideosPorDuracaoEViews(
-                candidatos,
-                minDuracao,
-                minViews
-            );
+            videos.push(...candidatos);
 
-            videosValidos.push(...aprovados);
-
-            // Remove duplicados por ID, por segurança.
-            videosValidos = Array.from(
-                new Map(videosValidos.map(v => [v.id.videoId, v])).values()
-            );
-
-            // Progresso referente ao limite de vídeos vasculhados.
             atualizarProgresso(
-                Math.min(90, Math.round((videosVasculhados / MAX_VIDEOS) * 90))
+                Math.min(70, Math.round((videosVasculhados / MAX_VIDEOS) * 70))
             );
 
             nextPageToken = data.nextPageToken || "";
             if (!nextPageToken) break;
         }
 
-        const canais = [...new Set(
-            videosValidos
-                .map(v => v.snippet && v.snippet.channelId)
-                .filter(Boolean)
-        )];
+        // Um canal aparece uma única vez no diagnóstico.
+        const canaisMap = new Map();
+        videos.forEach(v => {
+            const channelId = v.snippet.channelId;
+            if (!canaisMap.has(channelId)) canaisMap.set(channelId, []);
+            canaisMap.get(channelId).push(v);
+        });
 
+        window.DIAGNOSTICO.canaisUnicos = canaisMap.size;
+        atualizarDiagnostico();
+
+        // Busca duração/views dos vídeos e aplica os filtros POR CANAL.
+        // Regra sequencial:
+        // 1) canal é eliminado por duração se NENHUM vídeo dele, dentre os vasculhados, atingir a duração mínima.
+        // 2) entre os restantes, é eliminado por views se NENHUM vídeo que passou duração atingir as views mínimas.
+        const canaisAposVideo = await classificarCanaisPorDuracaoEViews(
+            canaisMap, minDuracao, minViews
+        );
+
+        atualizarProgresso(80);
+
+        // Agora consulta estatísticas dos canais restantes.
+        const ids = [...canaisAposVideo.keys()];
         const grupos = [];
-        while (canais.length) grupos.push(canais.splice(0, 50));
-
-        let total = grupos.length;
-        let atual = 0;
-
-        if (total === 0) {
-            atualizarProgresso(100);
-            return;
+        for (let i = 0; i < ids.length; i += 50) {
+            grupos.push(ids.slice(i, i + 50));
         }
 
-        for (const g of grupos) {
-            await buscarDadosDeVariosCanais(g);
-            atual++;
-            atualizarProgresso(90 + Math.round((atual / total) * 10));
+        for (let i = 0; i < grupos.length; i++) {
+            await classificarCanaisPorEstatisticas(
+                grupos[i], maxInscritos, maxVideosCanal
+            );
+            atualizarProgresso(
+                80 + Math.round(((i + 1) / Math.max(1, grupos.length)) * 20)
+            );
         }
 
         atualizarProgresso(100);
@@ -404,43 +394,23 @@ async function buscarVideos() {
     }
 }
 
-// Converte duração ISO 8601 do YouTube (ex.: PT7M30S) para segundos.
-// Se a API devolver um item sem duração, retorna 0 em vez de quebrar a busca.
 function duracaoParaSegundos(duracao) {
     if (typeof duracao !== "string") return 0;
 
     const match = duracao.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if (!match) return 0;
 
-    const horas = Number(match[1] || 0);
-    const minutos = Number(match[2] || 0);
-    const segundos = Number(match[3] || 0);
-
-    return (horas * 3600) + (minutos * 60) + segundos;
+    return (Number(match[1] || 0) * 3600) +
+           (Number(match[2] || 0) * 60) +
+           Number(match[3] || 0);
 }
 
-// Filtra cada lote usando duração REAL e views REAIS.
-// 7:00 = aceito; 6:59 = descartado quando minDuracao = 7.
-async function filtrarVideosPorDuracaoEViews(videos, minDuracao, minViews) {
+async function classificarCanaisPorDuracaoEViews(canaisMap, minDuracao, minViews) {
+    const todosVideos = [...canaisMap.values()].flat();
+    const dadosPorVideo = new Map();
 
-    if (!videos || videos.length === 0) return [];
-
-    const duracaoMinimaSegundos = minDuracao * 60;
-    const videosAprovados = [];
-
-    // Conjuntos evitam contar o mesmo canal várias vezes dentro da mesma busca.
-    window.DIAGNOSTICO_CANAIS = window.DIAGNOSTICO_CANAIS || {
-        duracao: new Set(),
-        views: new Set()
-    };
-
-    for (let i = 0; i < videos.length; i += 50) {
-        const grupo = videos.slice(i, i + 50).filter(
-            v => v.id && v.id.videoId
-        );
-
-        if (grupo.length === 0) continue;
-
+    for (let i = 0; i < todosVideos.length; i += 50) {
+        const grupo = todosVideos.slice(i, i + 50);
         const ids = grupo.map(v => v.id.videoId).join(",");
 
         const url =
@@ -449,103 +419,107 @@ async function filtrarVideosPorDuracaoEViews(videos, minDuracao, minViews) {
         const r = await fetch(url);
         const data = await r.json();
 
-        if (data.error) {
-            throw new Error(data.error.message || "Erro ao consultar dados dos vídeos.");
-        }
-
+        if (data.error) throw new Error(data.error.message || "Erro ao consultar vídeos.");
         if (!data.items) continue;
 
-        const dadosPorId = new Map(data.items.map(v => [v.id, v]));
-
-        grupo.forEach(video => {
-            const dados = dadosPorId.get(video.id.videoId);
-            if (!dados) return;
-
-            const channelId = video.snippet && video.snippet.channelId;
-            const duracao = dados.contentDetails && dados.contentDetails.duration;
-            const segundos = duracaoParaSegundos(duracao);
-            const views = Number(
-                dados.statistics && dados.statistics.viewCount
-                    ? dados.statistics.viewCount
-                    : 0
-            );
-
-            const falhouDuracao = segundos < duracaoMinimaSegundos;
-            const falhouViews = views < minViews;
-
-            if (channelId && falhouDuracao) {
-                window.DIAGNOSTICO_CANAIS.duracao.add(channelId);
-            }
-            if (channelId && falhouViews) {
-                window.DIAGNOSTICO_CANAIS.views.add(channelId);
-            }
-
-            if (!falhouDuracao && !falhouViews) {
-                videosAprovados.push(video);
-            }
-        });
+        data.items.forEach(v => dadosPorVideo.set(v.id, v));
     }
 
-    window.DIAGNOSTICO.eliminadosDuracao = window.DIAGNOSTICO_CANAIS.duracao.size;
-    window.DIAGNOSTICO.eliminadosViews = window.DIAGNOSTICO_CANAIS.views.size;
-    atualizarDiagnostico();
+    const minimoSegundos = minDuracao * 60;
+    const aprovados = new Map();
 
-    return videosAprovados;
+    for (const [channelId, videosCanal] of canaisMap.entries()) {
+        const videosComDuracao = videosCanal.filter(v => {
+            const d = dadosPorVideo.get(v.id.videoId);
+            const duracao = d && d.contentDetails && d.contentDetails.duration;
+            return duracaoParaSegundos(duracao) >= minimoSegundos;
+        });
+
+        // PRIMEIRO filtro: duração.
+        if (videosComDuracao.length === 0) {
+            window.DIAGNOSTICO.eliminadosDuracao++;
+            continue;
+        }
+
+        const videosComViews = videosComDuracao.filter(v => {
+            const d = dadosPorVideo.get(v.id.videoId);
+            const views = Number(
+                d && d.statistics && d.statistics.viewCount
+                    ? d.statistics.viewCount
+                    : 0
+            );
+            return views >= minViews;
+        });
+
+        // SEGUNDO filtro: views.
+        if (videosComViews.length === 0) {
+            window.DIAGNOSTICO.eliminadosViews++;
+            continue;
+        }
+
+        aprovados.set(channelId, videosComViews);
+    }
+
+    atualizarDiagnostico();
+    return aprovados;
 }
 
-async function buscarDadosDeVariosCanais(listaIds) {
-    const ids = listaIds.join(",");
+async function classificarCanaisPorEstatisticas(listaIds, maxInscritos, maxVideosCanal) {
+    if (!listaIds.length) return;
 
     const url =
-      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${ids}&key=${API_KEY}`;
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${listaIds.join(",")}&key=${API_KEY}`;
 
     const r = await fetch(url);
     const data = await r.json();
 
+    if (data.error) throw new Error(data.error.message || "Erro ao consultar canais.");
     if (!data.items) return;
-    data.items.forEach(processarCanal);
-}
 
-function processarCanal(c) {
-    const nome = c.snippet.title;
-    const inscritos = Number(c.statistics.subscriberCount || 0);
-    const views = Number(c.statistics.viewCount || 0);
-    const videos = Number(c.statistics.videoCount || 0);
+    // Se algum ID não vier na resposta, ele não é contado artificialmente em outro filtro.
+    data.items.forEach(c => {
+        const nome = c.snippet.title;
+        const inscritos = Number(c.statistics.subscriberCount || 0);
+        const views = Number(c.statistics.viewCount || 0);
+        const videos = Number(c.statistics.videoCount || 0);
 
-    const { minInscritos, maxInscritos, maxVideosCanal } = window.FILTROS;
+        // TERCEIRO filtro: inscritos.
+        if (inscritos < 1 || inscritos > maxInscritos) {
+            window.DIAGNOSTICO.eliminadosInscritos++;
+            return;
+        }
 
-    if (inscritos < minInscritos || inscritos > maxInscritos) {
-        window.DIAGNOSTICO.eliminadosInscritos++;
-        atualizarDiagnostico();
-        return;
-    }
+        // QUARTO filtro: máximo de vídeos do canal.
+        if (videos < 1 || videos > maxVideosCanal) {
+            window.DIAGNOSTICO.eliminadosMaxVideosCanal++;
+            return;
+        }
 
-    if (videos < 1 || videos > maxVideosCanal) {
-        window.DIAGNOSTICO.eliminadosMaxVideosCanal++;
-        atualizarDiagnostico();
-        return;
-    }
+        window.DIAGNOSTICO.aprovados++;
 
-    adicionarNaTabela(
-        nome,
-        inscritos,
-        videos,
-        (inscritos / videos).toFixed(1),
-        inscritos > 0 ? (views / inscritos).toFixed(2) : "0.00",
-        (views / videos).toFixed(1)
-    );
+        adicionarNaTabela(
+            nome,
+            inscritos,
+            videos,
+            (inscritos / videos).toFixed(1),
+            inscritos > 0 ? (views / inscritos).toFixed(2) : "0.00",
+            (views / videos).toFixed(1)
+        );
+    });
+
+    atualizarDiagnostico();
 }
 
 function atualizarDiagnostico() {
     const d = window.DIAGNOSTICO;
     if (!d) return;
 
-    document.getElementById("diagPeriodo").innerText = d.eliminadosPeriodo;
-    document.getElementById("diagLimiteVasculhados").innerText = d.eliminadosLimiteVasculhados;
+    document.getElementById("diagCanaisUnicos").innerText = d.canaisUnicos;
+    document.getElementById("diagDuracao").innerText = d.eliminadosDuracao;
+    document.getElementById("diagViews").innerText = d.eliminadosViews;
     document.getElementById("diagInscritos").innerText = d.eliminadosInscritos;
     document.getElementById("diagMaxVideosCanal").innerText = d.eliminadosMaxVideosCanal;
-    document.getElementById("diagViews").innerText = d.eliminadosViews;
-    document.getElementById("diagDuracao").innerText = d.eliminadosDuracao;
+    document.getElementById("diagAprovados").innerText = d.aprovados;
 }
 
 function adicionarNaTabela(...vals) {
